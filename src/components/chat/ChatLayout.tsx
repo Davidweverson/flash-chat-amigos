@@ -1,0 +1,83 @@
+import { useState, useEffect, useRef } from "react";
+import { Menu, Hash } from "lucide-react";
+import { ChatSidebar } from "./ChatSidebar";
+import { MessageBubble } from "./MessageBubble";
+import { ChatInput } from "./ChatInput";
+import { TypingIndicator } from "./TypingIndicator";
+import { ROOMS } from "@/lib/chat-store";
+import type { Message } from "@/lib/chat-store";
+
+interface ChatLayoutProps {
+  username: string;
+  currentRoom: string;
+  messages: Message[];
+  typingUsers: string[];
+  onlineUsers: string[];
+  onRoomChange: (id: string) => void;
+  onSendMessage: (text: string) => void;
+}
+
+export function ChatLayout({
+  username,
+  currentRoom,
+  messages,
+  typingUsers,
+  onlineUsers,
+  onRoomChange,
+  onSendMessage,
+}: ChatLayoutProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const room = ROOMS.find((r) => r.id === currentRoom);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  return (
+    <div className="flex h-screen w-full bg-background">
+      <ChatSidebar
+        currentRoom={currentRoom}
+        onRoomChange={onRoomChange}
+        onlineUsers={onlineUsers}
+        username={username}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      {/* Main chat area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="h-14 flex items-center gap-3 px-4 border-b border-border glass">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="md:hidden text-muted-foreground hover:text-foreground p-1"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <span className="text-lg">{room?.emoji}</span>
+          <div>
+            <h2 className="font-semibold text-foreground text-sm">{room?.name}</h2>
+            <p className="text-xs text-muted-foreground">{onlineUsers.length} online</p>
+          </div>
+        </header>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+          {messages.map((msg) => (
+            <MessageBubble
+              key={msg.id}
+              message={msg}
+              isOwn={msg.sender === username}
+            />
+          ))}
+          <TypingIndicator users={typingUsers} />
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input */}
+        <ChatInput onSend={onSendMessage} />
+      </div>
+    </div>
+  );
+}
