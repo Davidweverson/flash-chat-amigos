@@ -18,6 +18,7 @@ const Index = () => {
       onlineUsers={chat.onlineUsers}
       onRoomChange={chat.setCurrentRoom}
       onSendMessage={chat.sendMessage}
+      onTyping={chat.sendTyping}
     />
   );
 };

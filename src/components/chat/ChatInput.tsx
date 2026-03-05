@@ -4,11 +4,12 @@ import { Send, Smile } from "lucide-react";
 
 interface ChatInputProps {
   onSend: (text: string) => void;
+  onTyping: () => void;
 }
 
 const QUICK_EMOJIS = ["😂", "🔥", "❤️", "👍", "😎", "🎉", "💯", "😭", "🤔", "👀", "✨", "🙌"];
 
-export function ChatInput({ onSend }: ChatInputProps) {
+export function ChatInput({ onSend, onTyping }: ChatInputProps) {
   const [text, setText] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -21,6 +22,11 @@ export function ChatInput({ onSend }: ChatInputProps) {
     setShowEmojis(false);
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setText(e.target.value);
+    onTyping();
+  };
+
   const addEmoji = (emoji: string) => {
     setText((prev) => prev + emoji);
     inputRef.current?.focus();
@@ -28,7 +34,6 @@ export function ChatInput({ onSend }: ChatInputProps) {
 
   return (
     <div className="relative">
-      {/* Emoji picker */}
       {showEmojis && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -62,7 +67,7 @@ export function ChatInput({ onSend }: ChatInputProps) {
             ref={inputRef}
             type="text"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={handleChange}
             placeholder="Digite sua mensagem..."
             className="flex-1 px-4 py-2.5 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm transition-all"
           />

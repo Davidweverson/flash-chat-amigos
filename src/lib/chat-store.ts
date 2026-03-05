@@ -1,4 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export interface Message {
   id: string;
@@ -21,82 +23,155 @@ export const ROOMS: Room[] = [
   { id: "random", name: "Random", emoji: "🎲" },
 ];
 
-const BOT_MESSAGES = [
-  "Fala! Tudo certo? 😄",
-  "Boa! Partiu conversar",
-  "Alguém aí? 👀",
-  "Que massa esse chat!",
-  "Tô online 🔥",
-  "Bora jogar depois?",
-  "Quem mais tá acordado? 😂",
-];
-
-const BOT_NAMES = ["Lucas", "Ana", "Pedro", "Julia", "Mateus", "Bia"];
-
 export function useChatStore() {
   const [username, setUsername] = useState<string>("");
   const [currentRoom, setCurrentRoom] = useState<string>("geral");
   const [messages, setMessages] = useState<Message[]>([]);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
-  const [onlineUsers, setOnlineUsers] = useState<string[]>(["Lucas", "Ana", "Pedro"]);
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [isJoined, setIsJoined] = useState(false);
+
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const currentRoomRef = useRef(currentRoom);
+
+  // Keep ref in sync
+  useEffect(() => {
+    currentRoomRef.current = currentRoom;
+  }, [currentRoom]);
+
+  // Load messages for current room
+  const loadMessages = useCallback(async (roomId: string) => {
+    const { data, error } = await supabase
+      .from("chat_messages")
+      .select("*")
+      .eq("room_id", roomId)
+      .order("created_at", { ascending: true })
+      .limit(100);
+
+    if (!error && data) {
+      setMessages(
+        data.map((m) => ({
+          id: m.id,
+          text: m.text,
+          sender: m.sender,
+          timestamp: new Date(m.created_at),
+          roomId: m.room_id,
+        }))
+      );
+    }
+  }, []);
+
+  // Subscribe to realtime messages
+  useEffect(() => {
+    if (!isJoined) return;
+
+    // Load existing messages
+    loadMessages(currentRoom);
+
+    // Subscribe to new inserts for current room
+    const msgChannel = supabase
+      .channel(`messages-${currentRoom}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "chat_messages",
+          filter: `room_id=eq.${currentRoom}`,
+        },
+        (payload) => {
+          const m = payload.new as any;
+          setMessages((prev) => {
+            // Avoid duplicates
+            if (prev.some((msg) => msg.id === m.id)) return prev;
+            return [
+              ...prev,
+              {
+                id: m.id,
+                text: m.text,
+                sender: m.sender,
+                timestamp: new Date(m.created_at),
+                roomId: m.room_id,
+              },
+            ];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(msgChannel);
+    };
+  }, [isJoined, currentRoom, loadMessages]);
+
+  // Presence channel for online users & typing
+  useEffect(() => {
+    if (!isJoined || !username) return;
+
+    const presenceChannel = supabase.channel("presence-chat", {
+      config: { presence: { key: username } },
+    });
+
+    presenceChannel
+      .on("presence", { event: "sync" }, () => {
+        const state = presenceChannel.presenceState();
+        const users = Object.keys(state);
+        setOnlineUsers(users);
+      })
+      .on("broadcast", { event: "typing" }, (payload) => {
+        const typer = payload.payload?.username as string;
+        const room = payload.payload?.room as string;
+        if (typer && typer !== username && room === currentRoomRef.current) {
+          setTypingUsers((prev) =>
+            prev.includes(typer) ? prev : [...prev, typer]
+          );
+          // Auto-clear after 3s
+          setTimeout(() => {
+            setTypingUsers((prev) => prev.filter((u) => u !== typer));
+          }, 3000);
+        }
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await presenceChannel.track({ username, online_at: new Date().toISOString() });
+        }
+      });
+
+    channelRef.current = presenceChannel;
+
+    return () => {
+      presenceChannel.untrack();
+      supabase.removeChannel(presenceChannel);
+      channelRef.current = null;
+    };
+  }, [isJoined, username]);
 
   const joinChat = useCallback((name: string) => {
     setUsername(name);
     setIsJoined(true);
-    setOnlineUsers((prev) => [...prev, name]);
-
-    // Add welcome message
-    const welcomeMsg: Message = {
-      id: crypto.randomUUID(),
-      text: `${name} entrou no chat! 🎉`,
-      sender: "Sistema",
-      timestamp: new Date(),
-      roomId: "geral",
-    };
-    setMessages([welcomeMsg]);
-
-    // Simulate some existing messages
-    const existing: Message[] = [
-      { id: crypto.randomUUID(), text: "E aí galera! 👋", sender: "Lucas", timestamp: new Date(Date.now() - 300000), roomId: "geral" },
-      { id: crypto.randomUUID(), text: "Bora conversar!", sender: "Ana", timestamp: new Date(Date.now() - 240000), roomId: "geral" },
-      { id: crypto.randomUUID(), text: "Esse chat tá show 🔥", sender: "Pedro", timestamp: new Date(Date.now() - 120000), roomId: "geral" },
-      { id: crypto.randomUUID(), text: "Alguém joga Valorant?", sender: "Lucas", timestamp: new Date(Date.now() - 200000), roomId: "games" },
-      { id: crypto.randomUUID(), text: "Tô ouvindo muito Kendrick", sender: "Ana", timestamp: new Date(Date.now() - 180000), roomId: "musica" },
-    ];
-    setMessages((prev) => [...existing, ...prev]);
   }, []);
 
-  const sendMessage = useCallback((text: string) => {
-    const msg: Message = {
-      id: crypto.randomUUID(),
-      text,
-      sender: username,
-      timestamp: new Date(),
-      roomId: currentRoom,
-    };
-    setMessages((prev) => [...prev, msg]);
+  const sendMessage = useCallback(
+    async (text: string) => {
+      await supabase.from("chat_messages").insert({
+        text,
+        sender: username,
+        room_id: currentRoom,
+      });
+    },
+    [username, currentRoom]
+  );
 
-    // Simulate bot response
-    const shouldReply = Math.random() > 0.4;
-    if (shouldReply) {
-      const botName = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
-      if (botName !== username) {
-        setTypingUsers([botName]);
-        setTimeout(() => {
-          setTypingUsers([]);
-          const botMsg: Message = {
-            id: crypto.randomUUID(),
-            text: BOT_MESSAGES[Math.floor(Math.random() * BOT_MESSAGES.length)],
-            sender: botName,
-            timestamp: new Date(),
-            roomId: currentRoom,
-          };
-          setMessages((prev) => [...prev, botMsg]);
-        }, 1500 + Math.random() * 2000);
-      }
+  const sendTyping = useCallback(() => {
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: "broadcast",
+        event: "typing",
+        payload: { username, room: currentRoomRef.current },
+      });
     }
-  }, [username, currentRoom]);
+  }, [username]);
 
   const roomMessages = messages.filter((m) => m.roomId === currentRoom);
 
@@ -105,11 +180,11 @@ export function useChatStore() {
     currentRoom,
     setCurrentRoom,
     messages: roomMessages,
-    allMessages: messages,
     typingUsers,
     onlineUsers,
     isJoined,
     joinChat,
     sendMessage,
+    sendTyping,
   };
 }
