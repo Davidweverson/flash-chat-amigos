@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Menu, Hash } from "lucide-react";
+import { Menu } from "lucide-react";
 import { ChatSidebar } from "./ChatSidebar";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
@@ -15,6 +15,7 @@ interface ChatLayoutProps {
   onlineUsers: string[];
   onRoomChange: (id: string) => void;
   onSendMessage: (text: string) => void;
+  onTyping: () => void;
 }
 
 export function ChatLayout({
@@ -25,6 +26,7 @@ export function ChatLayout({
   onlineUsers,
   onRoomChange,
   onSendMessage,
+  onTyping,
 }: ChatLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -45,9 +47,7 @@ export function ChatLayout({
         onClose={() => setSidebarOpen(false)}
       />
 
-      {/* Main chat area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
         <header className="h-14 flex items-center gap-3 px-4 border-b border-border glass">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -62,8 +62,12 @@ export function ChatLayout({
           </div>
         </header>
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+          {messages.length === 0 && (
+            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+              Nenhuma mensagem ainda. Seja o primeiro a escrever! ✨
+            </div>
+          )}
           {messages.map((msg) => (
             <MessageBubble
               key={msg.id}
@@ -75,8 +79,7 @@ export function ChatLayout({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
-        <ChatInput onSend={onSendMessage} />
+        <ChatInput onSend={onSendMessage} onTyping={onTyping} />
       </div>
     </div>
   );
