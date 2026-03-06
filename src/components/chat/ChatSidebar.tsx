@@ -1,22 +1,20 @@
 import { motion } from "framer-motion";
-import { Hash, Users, X, LogOut, Settings, MessageSquare } from "lucide-react";
+import { Hash, Users, X } from "lucide-react";
 import { ROOMS, type Room } from "@/lib/chat-store";
-import type { Profile } from "@/hooks/useAuth";
 
 interface ChatSidebarProps {
   currentRoom: string;
   onRoomChange: (id: string) => void;
   onlineUsers: string[];
   username: string;
-  profile: Profile | null;
   open: boolean;
   onClose: () => void;
-  onLogout: () => void;
 }
 
-export function ChatSidebar({ currentRoom, onRoomChange, onlineUsers, username, profile, open, onClose, onLogout }: ChatSidebarProps) {
+export function ChatSidebar({ currentRoom, onRoomChange, onlineUsers, username, open, onClose }: ChatSidebarProps) {
   return (
     <>
+      {/* Mobile overlay */}
       {open && (
         <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-40 md:hidden" onClick={onClose} />
       )}
@@ -24,7 +22,7 @@ export function ChatSidebar({ currentRoom, onRoomChange, onlineUsers, username, 
       <aside
         className={`
           fixed md:relative z-50 md:z-auto
-          top-0 left-0 h-full w-64
+          top-0 left-0 h-full w-64 
           bg-sidebar border-r border-sidebar-border
           flex flex-col
           transition-transform duration-300
@@ -52,7 +50,7 @@ export function ChatSidebar({ currentRoom, onRoomChange, onlineUsers, username, 
               className={`
                 w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all
                 ${currentRoom === room.id
-                  ? "bg-primary/10 text-primary shadow-sm"
+                  ? "bg-primary/10 text-primary"
                   : "text-sidebar-foreground hover:bg-sidebar-accent"
                 }
               `}
@@ -78,30 +76,6 @@ export function ChatSidebar({ currentRoom, onRoomChange, onlineUsers, username, 
                 </span>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* User section */}
-        <div className="p-3 border-t border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden flex-shrink-0">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-primary font-bold text-sm">{username[0]?.toUpperCase()}</span>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{username}</p>
-              <p className="text-xs text-muted-foreground">Online</p>
-            </div>
-            <button
-              onClick={onLogout}
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-              title="Sair"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
           </div>
         </div>
       </aside>

@@ -6,8 +6,6 @@ export interface Message {
   id: string;
   text: string;
   sender: string;
-  senderId: string;
-  senderAvatar: string | null;
   timestamp: Date;
   roomId: string;
 }
@@ -19,39 +17,25 @@ export interface Room {
 }
 
 export const ROOMS: Room[] = [
-  { id: "geral", name: "Geral", emoji: "💬" },
-  { id: "jogos", name: "Jogos", emoji: "🎮" },
+  { id: "geral", name: "Sala Geral", emoji: "💬" },
+  { id: "games", name: "Games", emoji: "🎮" },
   { id: "musica", name: "Música", emoji: "🎵" },
   { id: "random", name: "Random", emoji: "🎲" },
-  { id: "tecnologia", name: "Tecnologia", emoji: "💻" },
 ];
 
-// Cache profiles to avoid repeated queries
-const profileCache = new Map<string, { username: string; avatar_url: string | null }>();
-
-async function getProfile(userId: string) {
-  if (profileCache.has(userId)) return profileCache.get(userId)!;
-  const { data } = await supabase
-    .from("profiles")
-    .select("username, avatar_url")
-    .eq("id", userId)
-    .single();
-  if (data) {
-    profileCache.set(userId, data);
-    return data;
-  }
-  return { username: "Desconhecido", avatar_url: null };
-}
-
-export function useChatStore(userId: string, username: string) {
+export function useChatStore() {
+  const [username, setUsername] = useState<string>("");
   const [currentRoom, setCurrentRoom] = useState<string>("geral");
   const [messages, setMessages] = useState<Message[]>([]);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+  const [isJoined, setIsJoined] = useState(false);
 
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentRoomRef = useRef(currentRoom);
 
+  // Keep ref in sync
   useEffect(() => {
     currentRoomRef.current = currentRoom;
   }, [currentRoom]);
@@ -66,28 +50,26 @@ export function useChatStore(userId: string, username: string) {
       .limit(100);
 
     if (!error && data) {
-      const msgs = await Promise.all(
-        data.map(async (m: any) => {
-          const profile = m.user_id ? await getProfile(m.user_id) : { username: m.sender, avatar_url: null };
-          return {
-            id: m.id,
-            text: m.text,
-            sender: profile.username || m.sender,
-            senderId: m.user_id || "",
-            senderAvatar: profile.avatar_url,
-            timestamp: new Date(m.created_at),
-            roomId: m.room_id,
-          };
-        })
+      setMessages(
+        data.map((m) => ({
+          id: m.id,
+          text: m.text,
+          sender: m.sender,
+          timestamp: new Date(m.created_at),
+          roomId: m.room_id,
+        }))
       );
-      setMessages(msgs);
     }
   }, []);
 
   // Subscribe to realtime messages
   useEffect(() => {
+    if (!isJoined) return;
+
+    // Load existing messages
     loadMessages(currentRoom);
 
+    // Subscribe to new inserts for current room
     const msgChannel = supabase
       .channel(`messages-${currentRoom}`)
       .on(
@@ -98,19 +80,17 @@ export function useChatStore(userId: string, username: string) {
           table: "chat_messages",
           filter: `room_id=eq.${currentRoom}`,
         },
-        async (payload) => {
+        (payload) => {
           const m = payload.new as any;
-          const profile = m.user_id ? await getProfile(m.user_id) : { username: m.sender, avatar_url: null };
           setMessages((prev) => {
+            // Avoid duplicates
             if (prev.some((msg) => msg.id === m.id)) return prev;
             return [
               ...prev,
               {
                 id: m.id,
                 text: m.text,
-                sender: profile.username || m.sender,
-                senderId: m.user_id || "",
-                senderAvatar: profile.avatar_url,
+                sender: m.sender,
                 timestamp: new Date(m.created_at),
                 roomId: m.room_id,
               },
@@ -118,28 +98,16 @@ export function useChatStore(userId: string, username: string) {
           });
         }
       )
-      .on(
-        "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "chat_messages",
-        },
-        (payload) => {
-          const deleted = payload.old as any;
-          setMessages((prev) => prev.filter((msg) => msg.id !== deleted.id));
-        }
-      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(msgChannel);
     };
-  }, [currentRoom, loadMessages]);
+  }, [isJoined, currentRoom, loadMessages]);
 
-  // Presence channel
+  // Presence channel for online users & typing
   useEffect(() => {
-    if (!username) return;
+    if (!isJoined || !username) return;
 
     const presenceChannel = supabase.channel("presence-chat", {
       config: { presence: { key: username } },
@@ -148,7 +116,8 @@ export function useChatStore(userId: string, username: string) {
     presenceChannel
       .on("presence", { event: "sync" }, () => {
         const state = presenceChannel.presenceState();
-        setOnlineUsers(Object.keys(state));
+        const users = Object.keys(state);
+        setOnlineUsers(users);
       })
       .on("broadcast", { event: "typing" }, (payload) => {
         const typer = payload.payload?.username as string;
@@ -157,6 +126,7 @@ export function useChatStore(userId: string, username: string) {
           setTypingUsers((prev) =>
             prev.includes(typer) ? prev : [...prev, typer]
           );
+          // Auto-clear after 3s
           setTimeout(() => {
             setTypingUsers((prev) => prev.filter((u) => u !== typer));
           }, 3000);
@@ -175,7 +145,12 @@ export function useChatStore(userId: string, username: string) {
       supabase.removeChannel(presenceChannel);
       channelRef.current = null;
     };
-  }, [username]);
+  }, [isJoined, username]);
+
+  const joinChat = useCallback((name: string) => {
+    setUsername(name);
+    setIsJoined(true);
+  }, []);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -183,15 +158,10 @@ export function useChatStore(userId: string, username: string) {
         text,
         sender: username,
         room_id: currentRoom,
-        user_id: userId,
       });
     },
-    [username, currentRoom, userId]
+    [username, currentRoom]
   );
-
-  const deleteMessage = useCallback(async (messageId: string) => {
-    await supabase.from("chat_messages").delete().eq("id", messageId);
-  }, []);
 
   const sendTyping = useCallback(() => {
     if (channelRef.current) {
@@ -206,13 +176,15 @@ export function useChatStore(userId: string, username: string) {
   const roomMessages = messages.filter((m) => m.roomId === currentRoom);
 
   return {
+    username,
     currentRoom,
     setCurrentRoom,
     messages: roomMessages,
     typingUsers,
     onlineUsers,
+    isJoined,
+    joinChat,
     sendMessage,
-    deleteMessage,
     sendTyping,
   };
 }
