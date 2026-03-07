@@ -41,6 +41,57 @@ export type Database = {
         }
         Relationships: []
       }
+      direct_messages: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          receiver_id: string
+          sender_id: string
+          text: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          receiver_id: string
+          sender_id: string
+          text?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          receiver_id?: string
+          sender_id?: string
+          text?: string | null
+        }
+        Relationships: []
+      }
+      friendships: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          status: Database["public"]["Enums"]["friendship_status"]
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          status?: Database["public"]["Enums"]["friendship_status"]
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          status?: Database["public"]["Enums"]["friendship_status"]
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -88,6 +139,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      are_friends: {
+        Args: { _user1: string; _user2: string }
+        Returns: boolean
+      }
       generate_friend_code: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -99,6 +154,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      friendship_status: "pending" | "accepted" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -227,6 +283,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      friendship_status: ["pending", "accepted", "rejected"],
     },
   },
 } as const

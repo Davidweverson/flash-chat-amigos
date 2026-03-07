@@ -1,6 +1,7 @@
 import { ChatLayout } from "@/components/chat/ChatLayout";
 import { useChatStore } from "@/lib/chat-store";
 import { useAuth } from "@/hooks/useAuth";
+import { useFriends } from "@/hooks/useFriends";
 import Auth from "./Auth";
 
 const Index = () => {
@@ -10,6 +11,16 @@ const Index = () => {
     user?.id || "",
     profile?.username || ""
   );
+
+  const {
+    friends,
+    pendingRequests,
+    loading: friendLoading,
+    addFriendByCode,
+    acceptRequest,
+    rejectRequest,
+    removeFriend,
+  } = useFriends(user?.id || "");
 
   if (loading) {
     return (
@@ -38,6 +49,13 @@ const Index = () => {
       onDeleteMessage={chat.deleteMessage}
       onTyping={chat.sendTyping}
       onLogout={logout}
+      friends={friends}
+      pendingRequests={pendingRequests}
+      friendLoading={friendLoading}
+      onAddFriend={addFriendByCode}
+      onAcceptRequest={acceptRequest}
+      onRejectRequest={rejectRequest}
+      onRemoveFriend={removeFriend}
     />
   );
 };
