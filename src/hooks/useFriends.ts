@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { playFriendRequestSound } from "@/lib/notification-sounds";
 
 export interface Friend {
   id: string;
