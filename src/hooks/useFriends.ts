@@ -23,6 +23,7 @@ export function useFriends(userId: string) {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [loading, setLoading] = useState(false);
+  const prevPendingCountRef = useRef(0);
 
   const loadFriends = useCallback(async () => {
     if (!userId) return;
