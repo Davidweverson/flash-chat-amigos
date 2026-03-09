@@ -69,6 +69,7 @@ export function useDirectMessages(userId: string, friendId: string | null) {
             (m.sender_id === userId && m.receiver_id === currentFriend) ||
             (m.sender_id === currentFriend && m.receiver_id === userId)
           ) {
+            const isOwnMessage = m.sender_id === userId;
             setMessages((prev) => {
               if (prev.some((msg) => msg.id === m.id)) return prev;
               return [
@@ -83,6 +84,7 @@ export function useDirectMessages(userId: string, friendId: string | null) {
                 },
               ];
             });
+            if (!isOwnMessage) playMessageSound();
           }
         }
       )

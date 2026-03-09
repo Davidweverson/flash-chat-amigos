@@ -102,6 +102,7 @@ export function useChatStore(userId: string, username: string) {
         async (payload) => {
           const m = payload.new as any;
           const profile = m.user_id ? await getProfile(m.user_id) : { username: m.sender, avatar_url: null };
+          const isOwnMessage = m.user_id === userId;
           setMessages((prev) => {
             if (prev.some((msg) => msg.id === m.id)) return prev;
             return [
@@ -117,6 +118,7 @@ export function useChatStore(userId: string, username: string) {
               },
             ];
           });
+          if (!isOwnMessage) playMessageSound();
         }
       )
       .on(

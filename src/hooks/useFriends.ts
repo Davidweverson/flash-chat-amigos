@@ -103,6 +103,16 @@ export function useFriends(userId: string) {
     loadFriends();
   }, [loadFriends]);
 
+  const prevPendingCountRef = useRef(0);
+
+  // Track pending count changes for sound
+  useEffect(() => {
+    if (pendingRequests.length > prevPendingCountRef.current) {
+      playFriendRequestSound();
+    }
+    prevPendingCountRef.current = pendingRequests.length;
+  }, [pendingRequests.length]);
+
   // Subscribe to realtime friendship changes
   useEffect(() => {
     if (!userId) return;
