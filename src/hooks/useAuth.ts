@@ -37,32 +37,42 @@ export function useAuth() {
   }, []);
 
   useEffect(() => {
+    let initialSessionHandled = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         const u = session?.user ?? null;
         setUser(u);
         if (u) {
-          await fetchProfile(u.id);
-          await checkAdmin(u.id);
+          try {
+            await fetchProfile(u.id);
+            await checkAdmin(u.id);
+          } catch (e) {
+            console.error("Error loading profile:", e);
+          }
         } else {
           setProfile(null);
           setIsAdmin(false);
         }
-        setLoading(false);
+        if (!initialSessionHandled) {
+          initialSessionHandled = true;
+          setLoading(false);
+        }
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) {
-        fetchProfile(u.id);
-        checkAdmin(u.id);
+    // Fallback: if onAuthStateChange doesn't fire quickly, resolve loading
+    const timeout = setTimeout(() => {
+      if (!initialSessionHandled) {
+        initialSessionHandled = true;
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    }, 3000);
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, [fetchProfile, checkAdmin]);
 
   const register = async (username: string, password: string, avatarFile?: File) => {
