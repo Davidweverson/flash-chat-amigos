@@ -23,6 +23,7 @@ export function useFriends(userId: string) {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [loading, setLoading] = useState(false);
+  const prevPendingCountRef = useRef(0);
 
   const loadFriends = useCallback(async () => {
     if (!userId) return;
@@ -102,8 +103,6 @@ export function useFriends(userId: string) {
   useEffect(() => {
     loadFriends();
   }, [loadFriends]);
-
-  const prevPendingCountRef = useRef(0);
 
   // Track pending count changes for sound
   useEffect(() => {
