@@ -22,7 +22,7 @@ const Index = () => {
     removeFriend,
   } = useFriends(user?.id || "");
 
-  if (loading) {
+  if (loading || (user && !profile)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -30,7 +30,7 @@ const Index = () => {
     );
   }
 
-  if (!user || !profile) {
+  if (!user) {
     return <Auth onRegister={register} onLogin={login} />;
   }
 
