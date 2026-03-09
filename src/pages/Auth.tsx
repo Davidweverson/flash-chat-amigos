@@ -66,19 +66,19 @@ export default function Auth({ onEnter }: AuthProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="glass rounded-2xl p-8 md:p-10 w-full max-w-md mx-4 relative z-10"
-      >
+        className="glass rounded-2xl p-8 md:p-10 w-full max-w-md mx-4 relative z-10">
+        
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.2, type: "spring" }}
-          className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6 glow-primary"
-        >
+          className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6 glow-primary">
+          
           <MessageCircle className="w-8 h-8 text-primary" />
         </motion.div>
 
         <h1 className="text-3xl font-bold mb-1 text-foreground text-center">
-          Flash<span className="text-primary">Chat</span>
+          Flash<span className="text-primary">Chat BETA     </span>
         </h1>
         <p className="text-muted-foreground mb-6 flex items-center justify-center gap-1.5 text-sm">
           <Zap className="w-4 h-4 text-primary" />
@@ -90,13 +90,13 @@ export default function Auth({ onEnter }: AuthProps) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="relative w-20 h-20 rounded-full bg-secondary border-2 border-dashed border-border hover:border-primary transition-colors flex items-center justify-center group overflow-hidden"
-            >
-              {avatarPreview ? (
-                <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover rounded-full" />
-              ) : (
-                <Camera className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
-              )}
+              className="relative w-20 h-20 rounded-full bg-secondary border-2 border-dashed border-border hover:border-primary transition-colors flex items-center justify-center group overflow-hidden">
+              
+              {avatarPreview ?
+              <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover rounded-full" /> :
+
+              <Camera className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
+              }
               <div className="absolute inset-0 bg-background/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
                 <Camera className="w-5 h-5 text-foreground" />
               </div>
@@ -106,8 +106,8 @@ export default function Auth({ onEnter }: AuthProps) {
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={handleAvatarChange}
-            />
+              onChange={handleAvatarChange} />
+            
           </div>
           <p className="text-xs text-muted-foreground text-center -mt-2">Foto opcional</p>
 
@@ -119,20 +119,20 @@ export default function Auth({ onEnter }: AuthProps) {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               maxLength={20}
-              className="w-full pl-10 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm"
-            />
+              className="w-full pl-10 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm" />
+            
           </div>
 
           <AnimatePresence>
-            {error && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-destructive text-sm text-center bg-destructive/10 py-2 rounded-lg"
-              >
+            {error &&
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-destructive text-sm text-center bg-destructive/10 py-2 rounded-lg">
+              
                 {error}
               </motion.p>
-            )}
+            }
           </AnimatePresence>
 
           <motion.button
@@ -140,19 +140,19 @@ export default function Auth({ onEnter }: AuthProps) {
             whileTap={{ scale: 0.98 }}
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 glow-primary transition-all hover:brightness-110 disabled:opacity-50"
-          >
-            {loading ? (
-              <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-            ) : (
-              <>
+            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 glow-primary transition-all hover:brightness-110 disabled:opacity-50">
+            
+            {loading ?
+            <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> :
+
+            <>
                 Entrar
                 <ArrowRight className="w-4 h-4" />
               </>
-            )}
+            }
           </motion.button>
         </form>
       </motion.div>
-    </div>
-  );
+    </div>);
+
 }
