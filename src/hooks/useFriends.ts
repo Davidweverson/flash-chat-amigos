@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { playFriendRequestSound } from "@/lib/notification-sounds";
 
 export interface Friend {
   id: string;
@@ -101,6 +102,16 @@ export function useFriends(userId: string) {
   useEffect(() => {
     loadFriends();
   }, [loadFriends]);
+
+  const prevPendingCountRef = useRef(0);
+
+  // Track pending count changes for sound
+  useEffect(() => {
+    if (pendingRequests.length > prevPendingCountRef.current) {
+      playFriendRequestSound();
+    }
+    prevPendingCountRef.current = pendingRequests.length;
+  }, [pendingRequests.length]);
 
   // Subscribe to realtime friendship changes
   useEffect(() => {
