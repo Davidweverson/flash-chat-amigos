@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { playMessageSound } from "@/lib/notification-sounds";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export interface Message {
