@@ -49,6 +49,8 @@ const Index = () => {
       onDeleteMessage={chat.deleteMessage}
       onTyping={chat.sendTyping}
       onLogout={logout}
+      uploading={chat.uploading}
+      uploadProgress={chat.uploadProgress}
       friends={friends}
       pendingRequests={pendingRequests}
       friendLoading={friendLoading}
