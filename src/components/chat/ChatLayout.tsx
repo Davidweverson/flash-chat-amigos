@@ -6,12 +6,10 @@ import { ChatInput } from "./ChatInput";
 import { TypingIndicator } from "./TypingIndicator";
 import { AddFriendModal } from "./AddFriendModal";
 import { DMView } from "./DMView";
-import { ImageLightbox } from "./ImageLightbox";
 import { ROOMS } from "@/lib/chat-store";
 import type { Message } from "@/lib/chat-store";
 import type { Profile } from "@/hooks/useAuth";
 import type { Friend, FriendRequest } from "@/hooks/useFriends";
-import type { PendingAttachment } from "@/lib/image-utils";
 
 interface ChatLayoutProps {
   username: string;
@@ -23,12 +21,10 @@ interface ChatLayoutProps {
   typingUsers: string[];
   onlineUsers: string[];
   onRoomChange: (id: string) => void;
-  onSendMessage: (text: string, attachments?: PendingAttachment[]) => void;
+  onSendMessage: (text: string) => void;
   onDeleteMessage: (id: string) => void;
   onTyping: () => void;
   onLogout: () => void;
-  uploading?: boolean;
-  uploadProgress?: number | null;
   // Friends
   friends: Friend[];
   pendingRequests: FriendRequest[];
@@ -53,8 +49,6 @@ export function ChatLayout({
   onDeleteMessage,
   onTyping,
   onLogout,
-  uploading,
-  uploadProgress,
   friends,
   pendingRequests,
   friendLoading,
@@ -66,7 +60,6 @@ export function ChatLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [addFriendOpen, setAddFriendOpen] = useState(false);
   const [activeDMFriend, setActiveDMFriend] = useState<Friend | null>(null);
-  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const room = ROOMS.find((r) => r.id === currentRoom);
 
@@ -74,8 +67,14 @@ export function ChatLayout({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleOpenDM = (friend: Friend) => setActiveDMFriend(friend);
-  const handleBackToRoom = () => setActiveDMFriend(null);
+  const handleOpenDM = (friend: Friend) => {
+    setActiveDMFriend(friend);
+  };
+
+  const handleBackToRoom = () => {
+    setActiveDMFriend(null);
+  };
+
   const handleRoomChange = (id: string) => {
     setActiveDMFriend(null);
     onRoomChange(id);
@@ -102,6 +101,7 @@ export function ChatLayout({
         activeDMFriendId={activeDMFriend?.id || null}
       />
 
+      {/* DM View or Room View */}
       {activeDMFriend ? (
         <DMView userId={userId} friend={activeDMFriend} onBack={handleBackToRoom} />
       ) : (
@@ -138,19 +138,13 @@ export function ChatLayout({
                 isOwn={msg.senderId === userId}
                 isAdmin={isAdmin}
                 onDelete={isAdmin ? onDeleteMessage : undefined}
-                onImageClick={setLightboxSrc}
               />
             ))}
             <TypingIndicator users={typingUsers} />
             <div ref={messagesEndRef} />
           </div>
 
-          <ChatInput
-            onSend={onSendMessage}
-            onTyping={onTyping}
-            uploading={uploading}
-            uploadProgress={uploadProgress}
-          />
+          <ChatInput onSend={onSendMessage} onTyping={onTyping} />
         </div>
       )}
 
@@ -161,8 +155,6 @@ export function ChatLayout({
         onAddFriend={onAddFriend}
         loading={friendLoading}
       />
-
-      <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 }

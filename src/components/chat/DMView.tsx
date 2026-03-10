@@ -1,10 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, Smile, Plus } from "lucide-react";
+import { ArrowLeft, Send, Smile, ImagePlus } from "lucide-react";
 import { useDirectMessages, type DirectMessage } from "@/hooks/useDirectMessages";
-import { AttachmentTray } from "./AttachmentTray";
-import { ImageLightbox } from "./ImageLightbox";
-import { createPendingAttachment, revokePendingAttachments, type PendingAttachment } from "@/lib/image-utils";
 import type { Friend } from "@/hooks/useFriends";
 
 const QUICK_EMOJIS = ["😂", "🔥", "❤️", "👍", "😎", "🎉", "💯", "😭", "🤔", "👀", "✨", "🙌"];
@@ -15,10 +12,11 @@ interface DMViewProps {
   onBack: () => void;
 }
 
-function DMBubble({ msg, isOwn, onImageClick }: { msg: DirectMessage; isOwn: boolean; onImageClick: (url: string) => void }) {
-  const time = msg.timestamp.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  const hasAttachments = msg.attachments && msg.attachments.length > 0;
-  const hasLegacyImage = msg.imageUrl && !hasAttachments;
+function DMBubble({ msg, isOwn }: { msg: DirectMessage; isOwn: boolean }) {
+  const time = msg.timestamp.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   return (
     <motion.div
@@ -29,33 +27,17 @@ function DMBubble({ msg, isOwn, onImageClick }: { msg: DirectMessage; isOwn: boo
     >
       <div className={`max-w-[75%] md:max-w-[60%] flex flex-col ${isOwn ? "items-end" : "items-start"}`}>
         <div
-          className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${isOwn ? "chat-bubble-own rounded-br-md" : "chat-bubble-other rounded-bl-md"}`}
+          className={`
+            px-4 py-2.5 rounded-2xl text-sm leading-relaxed
+            ${isOwn ? "chat-bubble-own rounded-br-md" : "chat-bubble-other rounded-bl-md"}
+          `}
         >
-          {/* New attachment system */}
-          {hasAttachments && (
-            <div className={`flex flex-col gap-1.5 ${msg.text ? "mb-2" : ""}`}>
-              {msg.attachments.map((att, i) => (
-                <img
-                  key={i}
-                  src={att.thumbnailUrl || att.url}
-                  alt={att.fileName || ""}
-                  className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                  style={{ maxWidth: "min(100%, 450px)", maxHeight: "350px", objectFit: "contain" }}
-                  onClick={() => onImageClick(att.url)}
-                  loading="lazy"
-                />
-              ))}
-            </div>
-          )}
-          {/* Legacy image support */}
-          {hasLegacyImage && (
+          {msg.imageUrl && (
             <img
-              src={msg.imageUrl!}
+              src={msg.imageUrl}
               alt=""
               className="max-w-full rounded-lg mb-1.5 cursor-pointer hover:opacity-90 transition-opacity"
-              style={{ maxWidth: "min(100%, 450px)", maxHeight: "350px", objectFit: "contain" }}
-              onClick={() => onImageClick(msg.imageUrl!)}
-              loading="lazy"
+              onClick={() => window.open(msg.imageUrl!, "_blank")}
             />
           )}
           {msg.text && <p>{msg.text}</p>}
@@ -69,77 +51,44 @@ function DMBubble({ msg, isOwn, onImageClick }: { msg: DirectMessage; isOwn: boo
 }
 
 export function DMView({ userId, friend, onBack }: DMViewProps) {
-  const { messages, sendMessage, uploading, uploadProgress } = useDirectMessages(userId, friend.id);
+  const { messages, sendMessage } = useDirectMessages(userId, friend.id);
   const [text, setText] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
-  const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
-  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const [dragOver, setDragOver] = useState(false);
+  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  useEffect(() => {
-    return () => revokePendingAttachments(attachments);
-  }, []);
-
-  const addFiles = useCallback((files: FileList | File[]) => {
-    const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
-    if (imageFiles.length === 0) return;
-    setAttachments((prev) => [...prev, ...imageFiles.map(createPendingAttachment)]);
-  }, []);
-
-  const removeAttachment = useCallback((id: string) => {
-    setAttachments((prev) => {
-      const att = prev.find((a) => a.id === id);
-      if (att) URL.revokeObjectURL(att.preview);
-      return prev.filter((a) => a.id !== id);
-    });
-  }, []);
-
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (uploading) return;
-    if (!text.trim() && attachments.length === 0) return;
-    await sendMessage(text.trim() || undefined, attachments.length > 0 ? attachments : undefined);
-    setText("");
-    setShowEmojis(false);
-    setAttachments([]);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) addFiles(e.target.files);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    if (e.dataTransfer.files.length > 0) addFiles(e.dataTransfer.files);
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    const files: File[] = [];
-    for (let i = 0; i < e.clipboardData.items.length; i++) {
-      if (e.clipboardData.items[i].type.startsWith("image/")) {
-        const file = e.clipboardData.items[i].getAsFile();
-        if (file) files.push(file);
-      }
+    if (!text.trim() && !sending) return;
+    setSending(true);
+    try {
+      await sendMessage(text.trim() || undefined);
+      setText("");
+      setShowEmojis(false);
+    } finally {
+      setSending(false);
     }
-    if (files.length > 0) addFiles(files);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSending(true);
+    try {
+      await sendMessage(undefined, file);
+    } finally {
+      setSending(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   return (
-    <div
-      className={`flex-1 flex flex-col min-w-0 h-full ${dragOver ? "ring-2 ring-primary ring-inset" : ""}`}
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-      onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
-      onDrop={handleDrop}
-    >
+    <div className="flex-1 flex flex-col min-w-0 h-full">
       {/* Header */}
       <header className="h-14 flex items-center gap-3 px-4 border-b border-border glass">
         <button onClick={onBack} className="text-muted-foreground hover:text-foreground p-1">
@@ -163,24 +112,24 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
           </div>
         )}
         {messages.map((msg) => (
-          <DMBubble key={msg.id} msg={msg} isOwn={msg.senderId === userId} onImageClick={setLightboxSrc} />
+          <DMBubble key={msg.id} msg={msg} isOwn={msg.senderId === userId} />
         ))}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input area */}
+      {/* Input */}
       <div className="relative">
         {showEmojis && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="absolute bottom-full left-0 right-0 mb-2 mx-2 z-20"
+            className="absolute bottom-full left-0 right-0 mb-2 mx-2"
           >
             <div className="glass rounded-xl p-3 flex flex-wrap gap-1">
               {QUICK_EMOJIS.map((emoji) => (
                 <button
                   key={emoji}
-                  onClick={() => { setText((p) => p + emoji); inputRef.current?.focus(); }}
+                  onClick={() => { setText((p) => p + emoji); }}
                   className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-muted text-lg transition-colors"
                 >
                   {emoji}
@@ -190,25 +139,8 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
           </motion.div>
         )}
 
-        <AttachmentTray attachments={attachments} onRemove={removeAttachment} uploadProgress={uploadProgress ?? null} />
-
         <form onSubmit={handleSend} className="p-3 border-t border-border">
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={handleFileChange}
-            />
             <button
               type="button"
               onClick={() => setShowEmojis(!showEmojis)}
@@ -216,19 +148,31 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
             >
               <Smile className="w-5 h-5" />
             </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <ImagePlus className="w-5 h-5" />
+            </button>
             <input
-              ref={inputRef}
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageUpload}
+            />
+            <input
               type="text"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              onPaste={handlePaste}
               placeholder="Digite sua mensagem..."
               className="flex-1 px-4 py-2.5 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm transition-all"
             />
             <motion.button
               whileTap={{ scale: 0.9 }}
               type="submit"
-              disabled={(!text.trim() && attachments.length === 0) || uploading}
+              disabled={!text.trim() || sending}
               className="p-2.5 rounded-xl bg-primary text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:brightness-110"
             >
               <Send className="w-5 h-5" />
@@ -236,8 +180,6 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
           </div>
         </form>
       </div>
-
-      <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 }

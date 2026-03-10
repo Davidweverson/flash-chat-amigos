@@ -7,10 +7,9 @@ interface MessageBubbleProps {
   isOwn: boolean;
   isAdmin?: boolean;
   onDelete?: (id: string) => void;
-  onImageClick?: (url: string) => void;
 }
 
-export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick }: MessageBubbleProps) {
+export function MessageBubble({ message, isOwn, isAdmin, onDelete }: MessageBubbleProps) {
   const time = message.timestamp.toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
@@ -23,6 +22,7 @@ export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick 
       transition={{ duration: 0.2 }}
       className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-1 group`}
     >
+      {/* Avatar for others */}
       {!isOwn && (
         <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0 mr-2 mt-5">
           {message.senderAvatar ? (
@@ -41,31 +41,19 @@ export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick 
           <div
             className={`
               px-4 py-2.5 rounded-2xl text-sm leading-relaxed
-              ${isOwn ? "chat-bubble-own rounded-br-md" : "chat-bubble-other rounded-bl-md"}
+              ${isOwn
+                ? "chat-bubble-own rounded-br-md"
+                : "chat-bubble-other rounded-bl-md"
+              }
             `}
           >
-            {/* Attachments */}
-            {message.attachments && message.attachments.length > 0 && (
-              <div className={`flex flex-col gap-1.5 ${message.text ? "mb-2" : ""}`}>
-                {message.attachments.map((att, i) => (
-                  <img
-                    key={i}
-                    src={att.thumbnailUrl || att.url}
-                    alt={att.fileName || ""}
-                    className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                    style={{ maxWidth: "min(100%, 450px)", maxHeight: "350px", objectFit: "contain" }}
-                    onClick={() => onImageClick?.(att.url)}
-                    loading="lazy"
-                  />
-                ))}
-              </div>
-            )}
-            {message.text && <p>{message.text}</p>}
+            <p>{message.text}</p>
             <p className={`text-[10px] mt-1 ${isOwn ? "text-chat-own-foreground/60" : "text-muted-foreground"} text-right`}>
               {time}
             </p>
           </div>
 
+          {/* Admin delete button */}
           {isAdmin && onDelete && (
             <button
               onClick={() => onDelete(message.id)}

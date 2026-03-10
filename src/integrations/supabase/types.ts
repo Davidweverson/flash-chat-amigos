@@ -92,45 +92,6 @@ export type Database = {
         }
         Relationships: []
       }
-      message_attachments: {
-        Row: {
-          created_at: string
-          file_name: string | null
-          height: number | null
-          id: string
-          message_id: string
-          message_type: string
-          size: number | null
-          thumbnail_url: string | null
-          url: string
-          width: number | null
-        }
-        Insert: {
-          created_at?: string
-          file_name?: string | null
-          height?: number | null
-          id?: string
-          message_id: string
-          message_type: string
-          size?: number | null
-          thumbnail_url?: string | null
-          url: string
-          width?: number | null
-        }
-        Update: {
-          created_at?: string
-          file_name?: string | null
-          height?: number | null
-          id?: string
-          message_id?: string
-          message_type?: string
-          size?: number | null
-          thumbnail_url?: string | null
-          url?: string
-          width?: number | null
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           avatar_url: string | null
