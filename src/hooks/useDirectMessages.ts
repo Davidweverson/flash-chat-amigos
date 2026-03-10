@@ -1,6 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { playMessageSound } from "@/lib/notification-sounds";
+import { uploadAttachment, type AttachmentData, type PendingAttachment } from "@/lib/image-utils";
+
+export interface DMAttachment {
+  url: string;
+  thumbnailUrl: string;
+  width: number;
+  height: number;
+  fileName: string;
+  size: number;
+}
 
 export interface DirectMessage {
   id: string;
@@ -9,10 +19,30 @@ export interface DirectMessage {
   text: string | null;
   imageUrl: string | null;
   timestamp: Date;
+  attachments: DMAttachment[];
+}
+
+async function loadAttachments(messageId: string): Promise<DMAttachment[]> {
+  const { data } = await supabase
+    .from("message_attachments")
+    .select("*")
+    .eq("message_id", messageId)
+    .eq("message_type", "dm");
+  if (!data) return [];
+  return data.map((a: any) => ({
+    url: a.url,
+    thumbnailUrl: a.thumbnail_url || a.url,
+    width: a.width || 0,
+    height: a.height || 0,
+    fileName: a.file_name || "",
+    size: a.size || 0,
+  }));
 }
 
 export function useDirectMessages(userId: string, friendId: string | null) {
   const [messages, setMessages] = useState<DirectMessage[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const friendIdRef = useRef(friendId);
 
   useEffect(() => {
@@ -35,16 +65,21 @@ export function useDirectMessages(userId: string, friendId: string | null) {
       .limit(100);
 
     if (data) {
-      setMessages(
-        data.map((m: any) => ({
-          id: m.id,
-          senderId: m.sender_id,
-          receiverId: m.receiver_id,
-          text: m.text,
-          imageUrl: m.image_url,
-          timestamp: new Date(m.created_at),
-        }))
+      const msgs = await Promise.all(
+        data.map(async (m: any) => {
+          const attachments = await loadAttachments(m.id);
+          return {
+            id: m.id,
+            senderId: m.sender_id,
+            receiverId: m.receiver_id,
+            text: m.text,
+            imageUrl: m.image_url,
+            timestamp: new Date(m.created_at),
+            attachments,
+          };
+        })
       );
+      setMessages(msgs);
     }
   }, [userId, friendId]);
 
@@ -52,7 +87,7 @@ export function useDirectMessages(userId: string, friendId: string | null) {
     loadMessages();
   }, [loadMessages]);
 
-  // Realtime subscription for DMs
+  // Realtime subscription
   useEffect(() => {
     if (!userId || !friendId) return;
 
@@ -61,15 +96,15 @@ export function useDirectMessages(userId: string, friendId: string | null) {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "direct_messages" },
-        (payload) => {
+        async (payload) => {
           const m = payload.new as any;
           const currentFriend = friendIdRef.current;
-          // Only add if it's part of the current conversation
           if (
             (m.sender_id === userId && m.receiver_id === currentFriend) ||
             (m.sender_id === currentFriend && m.receiver_id === userId)
           ) {
             const isOwnMessage = m.sender_id === userId;
+            const attachments = await loadAttachments(m.id);
             setMessages((prev) => {
               if (prev.some((msg) => msg.id === m.id)) return prev;
               return [
@@ -81,6 +116,7 @@ export function useDirectMessages(userId: string, friendId: string | null) {
                   text: m.text,
                   imageUrl: m.image_url,
                   timestamp: new Date(m.created_at),
+                  attachments,
                 },
               ];
             });
@@ -104,34 +140,66 @@ export function useDirectMessages(userId: string, friendId: string | null) {
   }, [userId, friendId]);
 
   const sendMessage = useCallback(
-    async (text?: string, imageFile?: File) => {
+    async (text?: string, pendingAttachments?: PendingAttachment[]) => {
       if (!friendId) return;
 
+      let attachmentData: AttachmentData[] = [];
+      // Legacy single image support
       let imageUrl: string | null = null;
 
-      if (imageFile) {
-        const ext = imageFile.name.split(".").pop();
-        const path = `${userId}/${Date.now()}.${ext}`;
-        const { error } = await supabase.storage
-          .from("dm-images")
-          .upload(path, imageFile);
-        if (!error) {
-          const { data: urlData } = supabase.storage
-            .from("dm-images")
-            .getPublicUrl(path);
-          imageUrl = urlData.publicUrl;
+      if (pendingAttachments && pendingAttachments.length > 0) {
+        setUploading(true);
+        setUploadProgress(0);
+        try {
+          const total = pendingAttachments.length;
+          for (let i = 0; i < total; i++) {
+            const att = await uploadAttachment(
+              pendingAttachments[i].file,
+              "dm-images",
+              userId,
+              (pct) => setUploadProgress(((i / total) + (pct / 100) / total) * 100)
+            );
+            attachmentData.push(att);
+          }
+        } catch (err) {
+          console.error("Upload failed:", err);
+          setUploading(false);
+          setUploadProgress(null);
+          return;
         }
       }
 
-      await supabase.from("direct_messages").insert({
-        sender_id: userId,
-        receiver_id: friendId,
-        text: text || null,
-        image_url: imageUrl,
-      });
+      const { data: msgData } = await supabase
+        .from("direct_messages")
+        .insert({
+          sender_id: userId,
+          receiver_id: friendId,
+          text: text || null,
+          image_url: imageUrl,
+        })
+        .select("id")
+        .single();
+
+      if (msgData && attachmentData.length > 0) {
+        await supabase.from("message_attachments").insert(
+          attachmentData.map((a) => ({
+            message_id: msgData.id,
+            message_type: "dm",
+            url: a.url,
+            thumbnail_url: a.thumbnailUrl,
+            width: a.width,
+            height: a.height,
+            file_name: a.fileName,
+            size: a.size,
+          }))
+        );
+      }
+
+      setUploading(false);
+      setUploadProgress(null);
     },
     [userId, friendId]
   );
 
-  return { messages, sendMessage };
+  return { messages, sendMessage, uploading, uploadProgress };
 }
