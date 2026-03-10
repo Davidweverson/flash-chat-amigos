@@ -92,20 +92,33 @@ export function useAuth() {
     }
 
     // Generate friend code
-    const { data: codeData } = await supabase.rpc("generate_friend_code");
+    let friendCode: string | null = null;
+    try {
+      const { data: codeData, error: rpcError } = await supabase.rpc("generate_friend_code");
+      if (!rpcError && codeData) {
+        friendCode = codeData;
+      }
+      console.log("Friend code result:", codeData, rpcError);
+    } catch (e) {
+      console.error("Friend code generation failed:", e);
+    }
+
+    const insertPayload = {
+      id: newId,
+      username,
+      avatar_url: avatarUrl,
+      friend_code: friendCode,
+    };
+    console.log("Inserting profile:", insertPayload);
 
     const { data, error } = await supabase
       .from("profiles")
-      .insert({
-        id: newId,
-        username,
-        avatar_url: avatarUrl,
-        friend_code: codeData || undefined,
-      })
+      .insert(insertPayload)
       .select()
       .single();
 
-    if (error) throw new Error("Erro ao criar perfil");
+    console.log("Insert result:", data, error);
+    if (error) throw new Error(`Erro ao criar perfil: ${error.message}`);
 
     setProfile(data as Profile);
     localStorage.setItem(STORAGE_KEY, newId);
