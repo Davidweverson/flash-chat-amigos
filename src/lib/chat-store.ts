@@ -202,6 +202,8 @@ export function useChatStore(userId: string, username: string) {
 
   const sendMessage = useCallback(
     async (text: string, pendingAttachments?: PendingAttachment[]) => {
+      console.log("[ChatStore] Sending message:", { text, userId, username, currentRoom, attachments: pendingAttachments?.length });
+
       let attachmentData: AttachmentData[] = [];
 
       if (pendingAttachments && pendingAttachments.length > 0) {
@@ -219,8 +221,9 @@ export function useChatStore(userId: string, username: string) {
             );
             attachmentData.push(att);
           }
+          console.log("[ChatStore] Attachments uploaded:", attachmentData.length);
         } catch (err) {
-          console.error("Upload failed:", err);
+          console.error("[ChatStore] Upload failed:", err);
           setUploading(false);
           setUploadProgress(null);
           return;
@@ -228,7 +231,8 @@ export function useChatStore(userId: string, username: string) {
       }
 
       // Insert the message
-      const { data: msgData } = await supabase
+      console.log("[ChatStore] Inserting message into DB...");
+      const { data: msgData, error: msgError } = await supabase
         .from("chat_messages")
         .insert({
           text: text || "",
@@ -239,9 +243,19 @@ export function useChatStore(userId: string, username: string) {
         .select("id")
         .single();
 
+      if (msgError) {
+        console.error("[ChatStore] Failed to insert message:", msgError);
+        console.error("[ChatStore] Error details:", JSON.stringify(msgError));
+        setUploading(false);
+        setUploadProgress(null);
+        return;
+      }
+
+      console.log("[ChatStore] Message inserted successfully:", msgData.id);
+
       // Insert attachments
       if (msgData && attachmentData.length > 0) {
-        await supabase.from("message_attachments").insert(
+        const { error: attError } = await supabase.from("message_attachments").insert(
           attachmentData.map((a) => ({
             message_id: msgData.id,
             message_type: "chat",
@@ -253,6 +267,11 @@ export function useChatStore(userId: string, username: string) {
             size: a.size,
           }))
         );
+        if (attError) {
+          console.error("[ChatStore] Failed to insert attachments:", attError);
+        } else {
+          console.log("[ChatStore] Attachments inserted successfully");
+        }
       }
 
       setUploading(false);
