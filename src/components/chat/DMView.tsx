@@ -88,7 +88,7 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
   }, []);
 
   const addFiles = useCallback((files: FileList | File[]) => {
-    const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    const imageFiles = Array.from(files).filter(isAcceptedFile);
     if (imageFiles.length === 0) return;
     setAttachments((prev) => [...prev, ...imageFiles.map(createPendingAttachment)]);
   }, []);
