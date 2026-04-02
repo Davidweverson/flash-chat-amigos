@@ -88,7 +88,18 @@ export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick 
                 })}
               </div>
             )}
-            {message.text && <p>{message.text}</p>}
+            {message.text && isGiphyUrl(message.text) ? (
+              <img
+                src={message.text}
+                alt="GIF"
+                className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                style={{ maxWidth: "min(100%, 350px)", maxHeight: "300px", objectFit: "contain" }}
+                onClick={() => onImageClick?.(message.text)}
+                loading="lazy"
+              />
+            ) : message.text ? (
+              <p>{message.text}</p>
+            ) : null}
             <p className={`text-[10px] mt-1 ${isOwn ? "text-chat-own-foreground/60" : "text-muted-foreground"} text-right`}>
               {time}
             </p>
