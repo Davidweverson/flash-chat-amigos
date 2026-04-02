@@ -131,6 +131,7 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
     await sendMessage(text.trim() || undefined, attachments.length > 0 ? attachments : undefined);
     setText("");
     setShowEmojis(false);
+    setShowGifs(false);
     setAttachments([]);
   };
 
