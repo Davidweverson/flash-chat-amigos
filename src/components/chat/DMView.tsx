@@ -4,7 +4,7 @@ import { ArrowLeft, Send, Smile, Plus } from "lucide-react";
 import { useDirectMessages, type DirectMessage } from "@/hooks/useDirectMessages";
 import { AttachmentTray } from "./AttachmentTray";
 import { ImageLightbox } from "./ImageLightbox";
-import { createPendingAttachment, revokePendingAttachments, type PendingAttachment } from "@/lib/image-utils";
+import { createPendingAttachment, revokePendingAttachments, ACCEPTED_MEDIA_TYPES, isAcceptedFile, isVideoUrl, isGifUrl, type PendingAttachment } from "@/lib/image-utils";
 import type { Friend } from "@/hooks/useFriends";
 
 const QUICK_EMOJIS = ["😂", "🔥", "❤️", "👍", "😎", "🎉", "💯", "😭", "🤔", "👀", "✨", "🙌"];
