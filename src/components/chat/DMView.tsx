@@ -220,6 +220,12 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
           </motion.div>
         )}
 
+        <GifPicker
+          open={showGifs}
+          onClose={() => setShowGifs(false)}
+          onSelect={handleGifSelect}
+        />
+
         <AttachmentTray attachments={attachments} onRemove={removeAttachment} uploadProgress={uploadProgress ?? null} />
 
         <form onSubmit={handleSend} className="p-3 border-t border-border">
