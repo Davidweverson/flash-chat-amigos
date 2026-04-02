@@ -28,7 +28,7 @@ export function ChatInput({ onSend, onTyping, uploading, uploadProgress }: ChatI
   }, []);
 
   const addFiles = useCallback((files: FileList | File[]) => {
-    const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    const imageFiles = Array.from(files).filter(isAcceptedFile);
     if (imageFiles.length === 0) return;
     const newAttachments = imageFiles.map(createPendingAttachment);
     setAttachments((prev) => [...prev, ...newAttachments]);
