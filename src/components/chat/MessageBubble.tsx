@@ -48,17 +48,39 @@ export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick 
             {/* Attachments */}
             {message.attachments && message.attachments.length > 0 && (
               <div className={`flex flex-col gap-1.5 ${message.text ? "mb-2" : ""}`}>
-                {message.attachments.map((att, i) => (
-                  <img
-                    key={i}
-                    src={att.thumbnailUrl || att.url}
-                    alt={att.fileName || ""}
-                    className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                    style={{ maxWidth: "min(100%, 450px)", maxHeight: "350px", objectFit: "contain" }}
-                    onClick={() => onImageClick?.(att.url)}
-                    loading="lazy"
-                  />
-                ))}
+                {message.attachments.map((att, i) => {
+                  const url = att.url;
+                  if (isVideoUrl(url)) {
+                    return (
+                      <div key={i} className="relative max-w-full rounded-lg overflow-hidden cursor-pointer group" style={{ maxWidth: "min(100%, 450px)" }} onClick={() => onImageClick?.(url)}>
+                        <video
+                          src={att.thumbnailUrl && !isVideoUrl(att.thumbnailUrl) ? undefined : url}
+                          poster={att.thumbnailUrl && !isVideoUrl(att.thumbnailUrl) ? att.thumbnailUrl : undefined}
+                          className="max-w-full rounded-lg"
+                          style={{ maxHeight: "350px", objectFit: "contain" }}
+                          muted
+                          preload="metadata"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+                          <div className="w-12 h-12 rounded-full bg-background/80 flex items-center justify-center">
+                            <Play className="w-6 h-6 text-foreground ml-0.5" />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <img
+                      key={i}
+                      src={att.thumbnailUrl || att.url}
+                      alt={att.fileName || ""}
+                      className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                      style={{ maxWidth: "min(100%, 450px)", maxHeight: "350px", objectFit: "contain" }}
+                      onClick={() => onImageClick?.(url)}
+                      loading="lazy"
+                    />
+                  );
+                })}
               </div>
             )}
             {message.text && <p>{message.text}</p>}
