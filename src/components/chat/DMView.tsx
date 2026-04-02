@@ -16,6 +16,11 @@ interface DMViewProps {
   onBack: () => void;
 }
 
+function isGiphyUrl(text: string): boolean {
+  return /^https?:\/\/.*giphy\.com\/.*\.(gif|webp)/i.test(text.trim()) ||
+         /^https?:\/\/media[0-9]*\.giphy\.com\//i.test(text.trim());
+}
+
 function DMBubble({ msg, isOwn, onImageClick }: { msg: DirectMessage; isOwn: boolean; onImageClick: (url: string) => void }) {
   const time = msg.timestamp.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const hasAttachments = msg.attachments && msg.attachments.length > 0;
