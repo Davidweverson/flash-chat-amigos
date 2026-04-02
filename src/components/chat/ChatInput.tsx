@@ -90,7 +90,7 @@ export function ChatInput({ onSend, onTyping, uploading, uploadProgress }: ChatI
     const items = e.clipboardData.items;
     const files: File[] = [];
     for (let i = 0; i < items.length; i++) {
-      if (items[i].type.startsWith("image/")) {
+      if (items[i].type.startsWith("image/") || items[i].type.startsWith("video/")) {
         const file = items[i].getAsFile();
         if (file) files.push(file);
       }

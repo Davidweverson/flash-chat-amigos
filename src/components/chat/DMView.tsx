@@ -146,8 +146,9 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
   const handlePaste = (e: React.ClipboardEvent) => {
     const files: File[] = [];
     for (let i = 0; i < e.clipboardData.items.length; i++) {
-      if (e.clipboardData.items[i].type.startsWith("image/")) {
-        const file = e.clipboardData.items[i].getAsFile();
+      const item = e.clipboardData.items[i];
+      if (item.type.startsWith("image/") || item.type.startsWith("video/")) {
+        const file = item.getAsFile();
         if (file) files.push(file);
       }
     }
