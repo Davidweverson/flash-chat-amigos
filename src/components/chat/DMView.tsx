@@ -4,7 +4,7 @@ import { ArrowLeft, Send, Smile, Plus } from "lucide-react";
 import { useDirectMessages, type DirectMessage } from "@/hooks/useDirectMessages";
 import { AttachmentTray } from "./AttachmentTray";
 import { ImageLightbox } from "./ImageLightbox";
-import { createPendingAttachment, revokePendingAttachments, type PendingAttachment } from "@/lib/image-utils";
+import { createPendingAttachment, revokePendingAttachments, ACCEPTED_MEDIA_TYPES, isAcceptedFile, isVideoUrl, isGifUrl, type PendingAttachment } from "@/lib/image-utils";
 import type { Friend } from "@/hooks/useFriends";
 
 const QUICK_EMOJIS = ["😂", "🔥", "❤️", "👍", "😎", "🎉", "💯", "😭", "🤔", "👀", "✨", "🙌"];
@@ -34,17 +34,38 @@ function DMBubble({ msg, isOwn, onImageClick }: { msg: DirectMessage; isOwn: boo
           {/* New attachment system */}
           {hasAttachments && (
             <div className={`flex flex-col gap-1.5 ${msg.text ? "mb-2" : ""}`}>
-              {msg.attachments.map((att, i) => (
-                <img
-                  key={i}
-                  src={att.thumbnailUrl || att.url}
-                  alt={att.fileName || ""}
-                  className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                  style={{ maxWidth: "min(100%, 450px)", maxHeight: "350px", objectFit: "contain" }}
-                  onClick={() => onImageClick(att.url)}
-                  loading="lazy"
-                />
-              ))}
+              {msg.attachments.map((att, i) => {
+                const url = att.url;
+                if (isVideoUrl(url)) {
+                  return (
+                    <div key={i} className="relative max-w-full rounded-lg overflow-hidden cursor-pointer group" style={{ maxWidth: "min(100%, 450px)" }} onClick={() => onImageClick(url)}>
+                      <video
+                        poster={att.thumbnailUrl && !isVideoUrl(att.thumbnailUrl) ? att.thumbnailUrl : undefined}
+                        className="max-w-full rounded-lg"
+                        style={{ maxHeight: "350px", objectFit: "contain" }}
+                        muted
+                        preload="metadata"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+                        <div className="w-12 h-12 rounded-full bg-background/80 flex items-center justify-center">
+                          <span className="text-foreground ml-0.5">▶</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <img
+                    key={i}
+                    src={att.thumbnailUrl || att.url}
+                    alt={att.fileName || ""}
+                    className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                    style={{ maxWidth: "min(100%, 450px)", maxHeight: "350px", objectFit: "contain" }}
+                    onClick={() => onImageClick(att.url)}
+                    loading="lazy"
+                  />
+                );
+              })}
             </div>
           )}
           {/* Legacy image support */}
@@ -88,7 +109,7 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
   }, []);
 
   const addFiles = useCallback((files: FileList | File[]) => {
-    const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    const imageFiles = Array.from(files).filter(isAcceptedFile);
     if (imageFiles.length === 0) return;
     setAttachments((prev) => [...prev, ...imageFiles.map(createPendingAttachment)]);
   }, []);
@@ -125,8 +146,9 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
   const handlePaste = (e: React.ClipboardEvent) => {
     const files: File[] = [];
     for (let i = 0; i < e.clipboardData.items.length; i++) {
-      if (e.clipboardData.items[i].type.startsWith("image/")) {
-        const file = e.clipboardData.items[i].getAsFile();
+      const item = e.clipboardData.items[i];
+      if (item.type.startsWith("image/") || item.type.startsWith("video/")) {
+        const file = item.getAsFile();
         if (file) files.push(file);
       }
     }
@@ -204,7 +226,7 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept={ACCEPTED_MEDIA_TYPES}
               multiple
               className="hidden"
               onChange={handleFileChange}

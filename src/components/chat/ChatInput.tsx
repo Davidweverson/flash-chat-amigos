@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Send, Smile, Plus } from "lucide-react";
 import { AttachmentTray } from "./AttachmentTray";
-import { createPendingAttachment, revokePendingAttachments, type PendingAttachment } from "@/lib/image-utils";
+import { createPendingAttachment, revokePendingAttachments, ACCEPTED_MEDIA_TYPES, isAcceptedFile, type PendingAttachment } from "@/lib/image-utils";
 
 interface ChatInputProps {
   onSend: (text: string, attachments?: PendingAttachment[]) => void;
@@ -28,7 +28,7 @@ export function ChatInput({ onSend, onTyping, uploading, uploadProgress }: ChatI
   }, []);
 
   const addFiles = useCallback((files: FileList | File[]) => {
-    const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    const imageFiles = Array.from(files).filter(isAcceptedFile);
     if (imageFiles.length === 0) return;
     const newAttachments = imageFiles.map(createPendingAttachment);
     setAttachments((prev) => [...prev, ...newAttachments]);
@@ -90,7 +90,7 @@ export function ChatInput({ onSend, onTyping, uploading, uploadProgress }: ChatI
     const items = e.clipboardData.items;
     const files: File[] = [];
     for (let i = 0; i < items.length; i++) {
-      if (items[i].type.startsWith("image/")) {
+      if (items[i].type.startsWith("image/") || items[i].type.startsWith("video/")) {
         const file = items[i].getAsFile();
         if (file) files.push(file);
       }
@@ -153,7 +153,7 @@ export function ChatInput({ onSend, onTyping, uploading, uploadProgress }: ChatI
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept={ACCEPTED_MEDIA_TYPES}
             multiple
             className="hidden"
             onChange={handleFileChange}

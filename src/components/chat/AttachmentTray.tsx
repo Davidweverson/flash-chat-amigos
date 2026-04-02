@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PendingAttachment } from "@/lib/image-utils";
+import { isVideoFile } from "@/lib/image-utils";
 
 interface AttachmentTrayProps {
   attachments: PendingAttachment[];
@@ -41,11 +42,20 @@ export function AttachmentTray({ attachments, onRemove, uploadProgress }: Attach
               exit={{ opacity: 0, scale: 0.8 }}
               className="relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-border group"
             >
-              <img
-                src={att.preview}
-                alt={att.file.name}
-                className="w-full h-full object-cover"
-              />
+              {isVideoFile(att.file) ? (
+                <video
+                  src={att.preview}
+                  className="w-full h-full object-cover"
+                  muted
+                  preload="metadata"
+                />
+              ) : (
+                <img
+                  src={att.preview}
+                  alt={att.file.name}
+                  className="w-full h-full object-cover"
+                />
+              )}
               <button
                 onClick={() => onRemove(att.id)}
                 className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-background/80 text-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"

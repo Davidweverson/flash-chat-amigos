@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Download } from "lucide-react";
+import { isVideoUrl } from "@/lib/image-utils";
 
 interface ImageLightboxProps {
   src: string | null;
@@ -16,6 +17,8 @@ export function ImageLightbox({ src, onClose }: ImageLightboxProps) {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [src, onClose]);
+
+  const isVideo = src ? isVideoUrl(src) : false;
 
   return (
     <AnimatePresence>
@@ -45,15 +48,28 @@ export function ImageLightbox({ src, onClose }: ImageLightboxProps) {
               <X className="w-5 h-5" />
             </button>
           </div>
-          <motion.img
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0.9 }}
-            src={src}
-            alt=""
-            className="max-w-full max-h-full rounded-lg object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
+          {isVideo ? (
+            <motion.video
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              src={src}
+              controls
+              autoPlay
+              className="max-w-full max-h-full rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <motion.img
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              src={src}
+              alt=""
+              className="max-w-full max-h-full rounded-lg object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
         </motion.div>
       )}
     </AnimatePresence>
