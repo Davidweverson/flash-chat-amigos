@@ -158,6 +158,11 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
     if (files.length > 0) addFiles(files);
   };
 
+  const handleGifSelect = (gifUrl: string) => {
+    sendMessage(gifUrl);
+    setShowGifs(false);
+  };
+
   return (
     <div
       className={`flex-1 flex flex-col min-w-0 h-full ${dragOver ? "ring-2 ring-primary ring-inset" : ""}`}
