@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { Trash2 } from "lucide-react";
+import { Trash2, Play } from "lucide-react";
 import type { Message } from "@/lib/chat-store";
+import { isVideoUrl, isGifUrl } from "@/lib/image-utils";
 
 interface MessageBubbleProps {
   message: Message;
