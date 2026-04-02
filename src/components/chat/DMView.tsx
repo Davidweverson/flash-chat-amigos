@@ -204,7 +204,7 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept={ACCEPTED_MEDIA_TYPES}
               multiple
               className="hidden"
               onChange={handleFileChange}

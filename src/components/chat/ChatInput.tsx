@@ -153,7 +153,7 @@ export function ChatInput({ onSend, onTyping, uploading, uploadProgress }: ChatI
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept={ACCEPTED_MEDIA_TYPES}
             multiple
             className="hidden"
             onChange={handleFileChange}
