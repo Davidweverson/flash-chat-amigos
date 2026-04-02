@@ -247,7 +247,15 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
             />
             <button
               type="button"
-              onClick={() => setShowEmojis(!showEmojis)}
+              onClick={() => { setShowGifs(!showGifs); setShowEmojis(false); }}
+              className={`p-2.5 rounded-xl transition-colors ${showGifs ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+              title="GIFs"
+            >
+              <ImageIcon className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowEmojis(!showEmojis); setShowGifs(false); }}
               className={`p-2.5 rounded-xl transition-colors ${showEmojis ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
             >
               <Smile className="w-5 h-5" />
