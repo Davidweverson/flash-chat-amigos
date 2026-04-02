@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, Smile, Plus } from "lucide-react";
+import { ArrowLeft, Send, Smile, Plus, Image as ImageIcon } from "lucide-react";
 import { useDirectMessages, type DirectMessage } from "@/hooks/useDirectMessages";
 import { AttachmentTray } from "./AttachmentTray";
 import { ImageLightbox } from "./ImageLightbox";
+import { GifPicker } from "./GifPicker";
 import { createPendingAttachment, revokePendingAttachments, ACCEPTED_MEDIA_TYPES, isAcceptedFile, isVideoUrl, isGifUrl, type PendingAttachment } from "@/lib/image-utils";
 import type { Friend } from "@/hooks/useFriends";
 
@@ -13,6 +14,11 @@ interface DMViewProps {
   userId: string;
   friend: Friend;
   onBack: () => void;
+}
+
+function isGiphyUrl(text: string): boolean {
+  return /^https?:\/\/.*giphy\.com\/.*\.(gif|webp)/i.test(text.trim()) ||
+         /^https?:\/\/media[0-9]*\.giphy\.com\//i.test(text.trim());
 }
 
 function DMBubble({ msg, isOwn, onImageClick }: { msg: DirectMessage; isOwn: boolean; onImageClick: (url: string) => void }) {
@@ -79,7 +85,18 @@ function DMBubble({ msg, isOwn, onImageClick }: { msg: DirectMessage; isOwn: boo
               loading="lazy"
             />
           )}
-          {msg.text && <p>{msg.text}</p>}
+          {msg.text && isGiphyUrl(msg.text) ? (
+            <img
+              src={msg.text}
+              alt="GIF"
+              className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+              style={{ maxWidth: "min(100%, 350px)", maxHeight: "300px", objectFit: "contain" }}
+              onClick={() => onImageClick(msg.text!)}
+              loading="lazy"
+            />
+          ) : msg.text ? (
+            <p>{msg.text}</p>
+          ) : null}
           <p className={`text-[10px] mt-1 ${isOwn ? "text-chat-own-foreground/60" : "text-muted-foreground"} text-right`}>
             {time}
           </p>
@@ -93,6 +110,7 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
   const { messages, sendMessage, uploading, uploadProgress } = useDirectMessages(userId, friend.id);
   const [text, setText] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
+  const [showGifs, setShowGifs] = useState(false);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -129,6 +147,7 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
     await sendMessage(text.trim() || undefined, attachments.length > 0 ? attachments : undefined);
     setText("");
     setShowEmojis(false);
+    setShowGifs(false);
     setAttachments([]);
   };
 
@@ -153,6 +172,11 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
       }
     }
     if (files.length > 0) addFiles(files);
+  };
+
+  const handleGifSelect = (gifUrl: string) => {
+    sendMessage(gifUrl);
+    setShowGifs(false);
   };
 
   return (
@@ -212,6 +236,12 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
           </motion.div>
         )}
 
+        <GifPicker
+          open={showGifs}
+          onClose={() => setShowGifs(false)}
+          onSelect={handleGifSelect}
+        />
+
         <AttachmentTray attachments={attachments} onRemove={removeAttachment} uploadProgress={uploadProgress ?? null} />
 
         <form onSubmit={handleSend} className="p-3 border-t border-border">
@@ -233,7 +263,15 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
             />
             <button
               type="button"
-              onClick={() => setShowEmojis(!showEmojis)}
+              onClick={() => { setShowGifs(!showGifs); setShowEmojis(false); }}
+              className={`p-2.5 rounded-xl transition-colors ${showGifs ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+              title="GIFs"
+            >
+              <ImageIcon className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowEmojis(!showEmojis); setShowGifs(false); }}
               className={`p-2.5 rounded-xl transition-colors ${showEmojis ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
             >
               <Smile className="w-5 h-5" />

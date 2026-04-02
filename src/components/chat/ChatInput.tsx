@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Send, Smile, Plus } from "lucide-react";
+import { Send, Smile, Plus, Image as ImageIcon } from "lucide-react";
 import { AttachmentTray } from "./AttachmentTray";
+import { GifPicker } from "./GifPicker";
 import { createPendingAttachment, revokePendingAttachments, ACCEPTED_MEDIA_TYPES, isAcceptedFile, type PendingAttachment } from "@/lib/image-utils";
 
 interface ChatInputProps {
@@ -16,6 +17,7 @@ const QUICK_EMOJIS = ["😂", "🔥", "❤️", "👍", "😎", "🎉", "💯", 
 export function ChatInput({ onSend, onTyping, uploading, uploadProgress }: ChatInputProps) {
   const [text, setText] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
+  const [showGifs, setShowGifs] = useState(false);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -49,6 +51,7 @@ export function ChatInput({ onSend, onTyping, uploading, uploadProgress }: ChatI
     onSend(text.trim(), attachments.length > 0 ? attachments : undefined);
     setText("");
     setShowEmojis(false);
+    setShowGifs(false);
     setAttachments([]);
   };
 
@@ -61,7 +64,6 @@ export function ChatInput({ onSend, onTyping, uploading, uploadProgress }: ChatI
     if (e.target.files && e.target.files.length > 0) {
       addFiles(e.target.files);
     }
-    // Reset so the same file can be selected again
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -96,6 +98,11 @@ export function ChatInput({ onSend, onTyping, uploading, uploadProgress }: ChatI
       }
     }
     if (files.length > 0) addFiles(files);
+  };
+
+  const handleGifSelect = (gifUrl: string) => {
+    onSend(gifUrl);
+    setShowGifs(false);
   };
 
   return (
@@ -135,6 +142,12 @@ export function ChatInput({ onSend, onTyping, uploading, uploadProgress }: ChatI
         </motion.div>
       )}
 
+      <GifPicker
+        open={showGifs}
+        onClose={() => setShowGifs(false)}
+        onSelect={handleGifSelect}
+      />
+
       <AttachmentTray
         attachments={attachments}
         onRemove={removeAttachment}
@@ -160,7 +173,15 @@ export function ChatInput({ onSend, onTyping, uploading, uploadProgress }: ChatI
           />
           <button
             type="button"
-            onClick={() => setShowEmojis(!showEmojis)}
+            onClick={() => { setShowGifs(!showGifs); setShowEmojis(false); }}
+            className={`p-2.5 rounded-xl transition-colors ${showGifs ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+            title="GIFs"
+          >
+            <ImageIcon className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => { setShowEmojis(!showEmojis); setShowGifs(false); }}
             className={`p-2.5 rounded-xl transition-colors ${showEmojis ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
           >
             <Smile className="w-5 h-5" />
