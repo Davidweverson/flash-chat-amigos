@@ -3,6 +3,11 @@ import { Trash2, Play } from "lucide-react";
 import type { Message } from "@/lib/chat-store";
 import { isVideoUrl, isGifUrl } from "@/lib/image-utils";
 
+function isGiphyUrl(text: string): boolean {
+  return /^https?:\/\/.*giphy\.com\/.*\.(gif|webp)/i.test(text.trim()) ||
+         /^https?:\/\/media[0-9]*\.giphy\.com\//i.test(text.trim());
+}
+
 interface MessageBubbleProps {
   message: Message;
   isOwn: boolean;
