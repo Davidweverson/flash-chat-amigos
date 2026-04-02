@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, Smile, Plus } from "lucide-react";
+import { ArrowLeft, Send, Smile, Plus, Image as ImageIcon } from "lucide-react";
 import { useDirectMessages, type DirectMessage } from "@/hooks/useDirectMessages";
 import { AttachmentTray } from "./AttachmentTray";
 import { ImageLightbox } from "./ImageLightbox";
