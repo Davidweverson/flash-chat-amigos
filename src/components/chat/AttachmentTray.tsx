@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PendingAttachment } from "@/lib/image-utils";
+import { isVideoFile } from "@/lib/image-utils";
 
 interface AttachmentTrayProps {
   attachments: PendingAttachment[];
