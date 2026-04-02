@@ -94,6 +94,7 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
   const { messages, sendMessage, uploading, uploadProgress } = useDirectMessages(userId, friend.id);
   const [text, setText] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
+  const [showGifs, setShowGifs] = useState(false);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
