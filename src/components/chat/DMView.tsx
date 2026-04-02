@@ -85,7 +85,18 @@ function DMBubble({ msg, isOwn, onImageClick }: { msg: DirectMessage; isOwn: boo
               loading="lazy"
             />
           )}
-          {msg.text && <p>{msg.text}</p>}
+          {msg.text && isGiphyUrl(msg.text) ? (
+            <img
+              src={msg.text}
+              alt="GIF"
+              className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+              style={{ maxWidth: "min(100%, 350px)", maxHeight: "300px", objectFit: "contain" }}
+              onClick={() => onImageClick(msg.text!)}
+              loading="lazy"
+            />
+          ) : msg.text ? (
+            <p>{msg.text}</p>
+          ) : null}
           <p className={`text-[10px] mt-1 ${isOwn ? "text-chat-own-foreground/60" : "text-muted-foreground"} text-right`}>
             {time}
           </p>
