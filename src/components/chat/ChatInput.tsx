@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Send, Smile, Plus } from "lucide-react";
 import { AttachmentTray } from "./AttachmentTray";
-import { createPendingAttachment, revokePendingAttachments, type PendingAttachment } from "@/lib/image-utils";
+import { createPendingAttachment, revokePendingAttachments, ACCEPTED_MEDIA_TYPES, isAcceptedFile, type PendingAttachment } from "@/lib/image-utils";
 
 interface ChatInputProps {
   onSend: (text: string, attachments?: PendingAttachment[]) => void;
