@@ -1,20 +1,23 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Send, Smile, Plus, Image as ImageIcon } from "lucide-react";
+import { Send, Smile, Plus, Image as ImageIcon, X } from "lucide-react";
 import { AttachmentTray } from "./AttachmentTray";
 import { GifPicker } from "./GifPicker";
 import { createPendingAttachment, revokePendingAttachments, ACCEPTED_MEDIA_TYPES, isAcceptedFile, type PendingAttachment } from "@/lib/image-utils";
+import type { ReplyInfo } from "@/lib/chat-store";
 
 interface ChatInputProps {
-  onSend: (text: string, attachments?: PendingAttachment[]) => void;
+  onSend: (text: string, attachments?: PendingAttachment[], replyToId?: string) => void;
   onTyping: () => void;
   uploading?: boolean;
   uploadProgress?: number | null;
+  replyingTo?: ReplyInfo | null;
+  onCancelReply?: () => void;
 }
 
 const QUICK_EMOJIS = ["😂", "🔥", "❤️", "👍", "😎", "🎉", "💯", "😭", "🤔", "👀", "✨", "🙌"];
 
-export function ChatInput({ onSend, onTyping, uploading, uploadProgress }: ChatInputProps) {
+export function ChatInput({ onSend, onTyping, uploading, uploadProgress, replyingTo, onCancelReply }: ChatInputProps) {
   const [text, setText] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
   const [showGifs, setShowGifs] = useState(false);
@@ -28,6 +31,11 @@ export function ChatInput({ onSend, onTyping, uploading, uploadProgress }: ChatI
   useEffect(() => {
     return () => revokePendingAttachments(attachments);
   }, []);
+
+  // Focus input when replying
+  useEffect(() => {
+    if (replyingTo) inputRef.current?.focus();
+  }, [replyingTo]);
 
   const addFiles = useCallback((files: FileList | File[]) => {
     const imageFiles = Array.from(files).filter(isAcceptedFile);
@@ -48,11 +56,12 @@ export function ChatInput({ onSend, onTyping, uploading, uploadProgress }: ChatI
     e.preventDefault();
     if (uploading) return;
     if (!text.trim() && attachments.length === 0) return;
-    onSend(text.trim(), attachments.length > 0 ? attachments : undefined);
+    onSend(text.trim(), attachments.length > 0 ? attachments : undefined, replyingTo?.id);
     setText("");
     setShowEmojis(false);
     setShowGifs(false);
     setAttachments([]);
+    onCancelReply?.();
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,8 +110,9 @@ export function ChatInput({ onSend, onTyping, uploading, uploadProgress }: ChatI
   };
 
   const handleGifSelect = (gifUrl: string) => {
-    onSend(gifUrl);
+    onSend(gifUrl, undefined, replyingTo?.id);
     setShowGifs(false);
+    onCancelReply?.();
   };
 
   return (
@@ -153,6 +163,22 @@ export function ChatInput({ onSend, onTyping, uploading, uploadProgress }: ChatI
         onRemove={removeAttachment}
         uploadProgress={uploadProgress ?? null}
       />
+
+      {/* Reply banner */}
+      {replyingTo && (
+        <div className="px-3 pt-2 pb-0">
+          <div className="flex items-center gap-2 bg-secondary/80 rounded-lg px-3 py-2 text-xs">
+            <div className="w-1 h-8 bg-primary rounded-full flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-primary truncate">{replyingTo.sender}</p>
+              <p className="text-muted-foreground truncate">{replyingTo.text || "📎 Anexo"}</p>
+            </div>
+            <button onClick={onCancelReply} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="p-3 border-t border-border">
         <div className="flex items-center gap-2">

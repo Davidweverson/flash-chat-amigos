@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, Smile, Plus, Image as ImageIcon } from "lucide-react";
-import { useDirectMessages, type DirectMessage } from "@/hooks/useDirectMessages";
+import { ArrowLeft, Send, Smile, Plus, Image as ImageIcon, Trash2, Reply, X } from "lucide-react";
+import { useDirectMessages, type DirectMessage, type DMReplyInfo } from "@/hooks/useDirectMessages";
 import { AttachmentTray } from "./AttachmentTray";
 import { ImageLightbox } from "./ImageLightbox";
 import { GifPicker } from "./GifPicker";
@@ -21,7 +21,13 @@ function isGiphyUrl(text: string): boolean {
          /^https?:\/\/media[0-9]*\.giphy\.com\//i.test(text.trim());
 }
 
-function DMBubble({ msg, isOwn, onImageClick }: { msg: DirectMessage; isOwn: boolean; onImageClick: (url: string) => void }) {
+function DMBubble({ msg, isOwn, onImageClick, onDelete, onReply }: {
+  msg: DirectMessage;
+  isOwn: boolean;
+  onImageClick: (url: string) => void;
+  onDelete?: (id: string) => void;
+  onReply?: (msg: DirectMessage) => void;
+}) {
   const time = msg.timestamp.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const hasAttachments = msg.attachments && msg.attachments.length > 0;
   const hasLegacyImage = msg.imageUrl && !hasAttachments;
@@ -31,75 +37,110 @@ function DMBubble({ msg, isOwn, onImageClick }: { msg: DirectMessage; isOwn: boo
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-1`}
+      className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-1 group`}
     >
       <div className={`max-w-[75%] md:max-w-[60%] flex flex-col ${isOwn ? "items-end" : "items-start"}`}>
-        <div
-          className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${isOwn ? "chat-bubble-own rounded-br-md" : "chat-bubble-other rounded-bl-md"}`}
-        >
-          {/* New attachment system */}
-          {hasAttachments && (
-            <div className={`flex flex-col gap-1.5 ${msg.text ? "mb-2" : ""}`}>
-              {msg.attachments.map((att, i) => {
-                const url = att.url;
-                if (isVideoUrl(url)) {
-                  return (
-                    <div key={i} className="relative max-w-full rounded-lg overflow-hidden cursor-pointer group" style={{ maxWidth: "min(100%, 450px)" }} onClick={() => onImageClick(url)}>
-                      <video
-                        poster={att.thumbnailUrl && !isVideoUrl(att.thumbnailUrl) ? att.thumbnailUrl : undefined}
-                        className="max-w-full rounded-lg"
-                        style={{ maxHeight: "350px", objectFit: "contain" }}
-                        muted
-                        preload="metadata"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
-                        <div className="w-12 h-12 rounded-full bg-background/80 flex items-center justify-center">
-                          <span className="text-foreground ml-0.5">▶</span>
+        <div className="relative">
+          <div
+            className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${isOwn ? "chat-bubble-own rounded-br-md" : "chat-bubble-other rounded-bl-md"}`}
+          >
+            {/* Reply quote */}
+            {msg.replyTo && (
+              <div className="flex items-stretch gap-0 mb-2 rounded-lg overflow-hidden bg-black/10">
+                <div className="w-1 bg-primary flex-shrink-0" />
+                <div className="px-2.5 py-1.5 min-w-0">
+                  <p className="text-xs font-semibold text-primary truncate">{msg.replyTo.senderName}</p>
+                  <p className="text-xs opacity-70 truncate">{msg.replyTo.text || "📎 Anexo"}</p>
+                </div>
+              </div>
+            )}
+
+            {/* New attachment system */}
+            {hasAttachments && (
+              <div className={`flex flex-col gap-1.5 ${msg.text ? "mb-2" : ""}`}>
+                {msg.attachments.map((att, i) => {
+                  const url = att.url;
+                  if (isVideoUrl(url)) {
+                    return (
+                      <div key={i} className="relative max-w-full rounded-lg overflow-hidden cursor-pointer group" style={{ maxWidth: "min(100%, 450px)" }} onClick={() => onImageClick(url)}>
+                        <video
+                          poster={att.thumbnailUrl && !isVideoUrl(att.thumbnailUrl) ? att.thumbnailUrl : undefined}
+                          className="max-w-full rounded-lg"
+                          style={{ maxHeight: "350px", objectFit: "contain" }}
+                          muted
+                          preload="metadata"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+                          <div className="w-12 h-12 rounded-full bg-background/80 flex items-center justify-center">
+                            <span className="text-foreground ml-0.5">▶</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    );
+                  }
+                  return (
+                    <img
+                      key={i}
+                      src={att.thumbnailUrl || att.url}
+                      alt={att.fileName || ""}
+                      className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                      style={{ maxWidth: "min(100%, 450px)", maxHeight: "350px", objectFit: "contain" }}
+                      onClick={() => onImageClick(att.url)}
+                      loading="lazy"
+                    />
                   );
-                }
-                return (
-                  <img
-                    key={i}
-                    src={att.thumbnailUrl || att.url}
-                    alt={att.fileName || ""}
-                    className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                    style={{ maxWidth: "min(100%, 450px)", maxHeight: "350px", objectFit: "contain" }}
-                    onClick={() => onImageClick(att.url)}
-                    loading="lazy"
-                  />
-                );
-              })}
-            </div>
-          )}
-          {/* Legacy image support */}
-          {hasLegacyImage && (
-            <img
-              src={msg.imageUrl!}
-              alt=""
-              className="max-w-full rounded-lg mb-1.5 cursor-pointer hover:opacity-90 transition-opacity"
-              style={{ maxWidth: "min(100%, 450px)", maxHeight: "350px", objectFit: "contain" }}
-              onClick={() => onImageClick(msg.imageUrl!)}
-              loading="lazy"
-            />
-          )}
-          {msg.text && isGiphyUrl(msg.text) ? (
-            <img
-              src={msg.text}
-              alt="GIF"
-              className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-              style={{ maxWidth: "min(100%, 350px)", maxHeight: "300px", objectFit: "contain" }}
-              onClick={() => onImageClick(msg.text!)}
-              loading="lazy"
-            />
-          ) : msg.text ? (
-            <p>{msg.text}</p>
-          ) : null}
-          <p className={`text-[10px] mt-1 ${isOwn ? "text-chat-own-foreground/60" : "text-muted-foreground"} text-right`}>
-            {time}
-          </p>
+                })}
+              </div>
+            )}
+            {/* Legacy image support */}
+            {hasLegacyImage && (
+              <img
+                src={msg.imageUrl!}
+                alt=""
+                className="max-w-full rounded-lg mb-1.5 cursor-pointer hover:opacity-90 transition-opacity"
+                style={{ maxWidth: "min(100%, 450px)", maxHeight: "350px", objectFit: "contain" }}
+                onClick={() => onImageClick(msg.imageUrl!)}
+                loading="lazy"
+              />
+            )}
+            {msg.text && isGiphyUrl(msg.text) ? (
+              <img
+                src={msg.text}
+                alt="GIF"
+                className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                style={{ maxWidth: "min(100%, 350px)", maxHeight: "300px", objectFit: "contain" }}
+                onClick={() => onImageClick(msg.text!)}
+                loading="lazy"
+              />
+            ) : msg.text ? (
+              <p>{msg.text}</p>
+            ) : null}
+            <p className={`text-[10px] mt-1 ${isOwn ? "text-chat-own-foreground/60" : "text-muted-foreground"} text-right`}>
+              {time}
+            </p>
+          </div>
+
+          {/* Action buttons */}
+          <div className={`absolute ${isOwn ? "-left-16" : "-right-16"} top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all`}>
+            {onReply && (
+              <button
+                onClick={() => onReply(msg)}
+                className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+                title="Responder"
+              >
+                <Reply className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {isOwn && onDelete && (
+              <button
+                onClick={() => onDelete(msg.id)}
+                className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                title="Apagar mensagem"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </motion.div>
@@ -107,13 +148,14 @@ function DMBubble({ msg, isOwn, onImageClick }: { msg: DirectMessage; isOwn: boo
 }
 
 export function DMView({ userId, friend, onBack }: DMViewProps) {
-  const { messages, sendMessage, uploading, uploadProgress } = useDirectMessages(userId, friend.id);
+  const { messages, sendMessage, deleteMessage, uploading, uploadProgress } = useDirectMessages(userId, friend.id, friend.username);
   const [text, setText] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
   const [showGifs, setShowGifs] = useState(false);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<{ id: string; senderName: string; text: string | null } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -125,6 +167,10 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
   useEffect(() => {
     return () => revokePendingAttachments(attachments);
   }, []);
+
+  useEffect(() => {
+    if (replyingTo) inputRef.current?.focus();
+  }, [replyingTo]);
 
   const addFiles = useCallback((files: FileList | File[]) => {
     const imageFiles = Array.from(files).filter(isAcceptedFile);
@@ -144,11 +190,12 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
     e.preventDefault();
     if (uploading) return;
     if (!text.trim() && attachments.length === 0) return;
-    await sendMessage(text.trim() || undefined, attachments.length > 0 ? attachments : undefined);
+    await sendMessage(text.trim() || undefined, attachments.length > 0 ? attachments : undefined, replyingTo?.id);
     setText("");
     setShowEmojis(false);
     setShowGifs(false);
     setAttachments([]);
+    setReplyingTo(null);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -175,8 +222,17 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
   };
 
   const handleGifSelect = (gifUrl: string) => {
-    sendMessage(gifUrl);
+    sendMessage(gifUrl, undefined, replyingTo?.id);
     setShowGifs(false);
+    setReplyingTo(null);
+  };
+
+  const handleReply = (msg: DirectMessage) => {
+    setReplyingTo({
+      id: msg.id,
+      senderName: msg.senderId === userId ? "Você" : friend.username,
+      text: msg.text,
+    });
   };
 
   return (
@@ -209,7 +265,14 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
           </div>
         )}
         {messages.map((msg) => (
-          <DMBubble key={msg.id} msg={msg} isOwn={msg.senderId === userId} onImageClick={setLightboxSrc} />
+          <DMBubble
+            key={msg.id}
+            msg={msg}
+            isOwn={msg.senderId === userId}
+            onImageClick={setLightboxSrc}
+            onDelete={deleteMessage}
+            onReply={handleReply}
+          />
         ))}
         <div ref={messagesEndRef} />
       </div>
@@ -243,6 +306,22 @@ export function DMView({ userId, friend, onBack }: DMViewProps) {
         />
 
         <AttachmentTray attachments={attachments} onRemove={removeAttachment} uploadProgress={uploadProgress ?? null} />
+
+        {/* Reply banner */}
+        {replyingTo && (
+          <div className="px-3 pt-2 pb-0">
+            <div className="flex items-center gap-2 bg-secondary/80 rounded-lg px-3 py-2 text-xs">
+              <div className="w-1 h-8 bg-primary rounded-full flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-primary truncate">{replyingTo.senderName}</p>
+                <p className="text-muted-foreground truncate">{replyingTo.text || "📎 Anexo"}</p>
+              </div>
+              <button onClick={() => setReplyingTo(null)} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSend} className="p-3 border-t border-border">
           <div className="flex items-center gap-2">

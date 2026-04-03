@@ -12,6 +12,12 @@ export interface DMAttachment {
   size: number;
 }
 
+export interface DMReplyInfo {
+  id: string;
+  senderName: string;
+  text: string | null;
+}
+
 export interface DirectMessage {
   id: string;
   senderId: string;
@@ -20,6 +26,7 @@ export interface DirectMessage {
   imageUrl: string | null;
   timestamp: Date;
   attachments: DMAttachment[];
+  replyTo: DMReplyInfo | null;
 }
 
 async function loadAttachments(messageId: string): Promise<DMAttachment[]> {
@@ -39,7 +46,19 @@ async function loadAttachments(messageId: string): Promise<DMAttachment[]> {
   }));
 }
 
-export function useDirectMessages(userId: string, friendId: string | null) {
+async function loadDMReplyInfo(replyToId: string | null, senderNameMap: Map<string, string>): Promise<DMReplyInfo | null> {
+  if (!replyToId) return null;
+  const { data } = await supabase
+    .from("direct_messages")
+    .select("id, sender_id, text")
+    .eq("id", replyToId)
+    .single();
+  if (!data) return null;
+  const senderName = senderNameMap.get(data.sender_id) || "...";
+  return { id: data.id, senderName, text: data.text };
+}
+
+export function useDirectMessages(userId: string, friendId: string | null, friendUsername?: string) {
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -48,6 +67,14 @@ export function useDirectMessages(userId: string, friendId: string | null) {
   useEffect(() => {
     friendIdRef.current = friendId;
   }, [friendId]);
+
+  // Build a name map for resolving reply sender names
+  const buildNameMap = useCallback((): Map<string, string> => {
+    const map = new Map<string, string>();
+    map.set(userId, "Você");
+    if (friendId && friendUsername) map.set(friendId, friendUsername);
+    return map;
+  }, [userId, friendId, friendUsername]);
 
   const loadMessages = useCallback(async () => {
     if (!userId || !friendId) {
@@ -65,9 +92,11 @@ export function useDirectMessages(userId: string, friendId: string | null) {
       .limit(100);
 
     if (data) {
+      const nameMap = buildNameMap();
       const msgs = await Promise.all(
         data.map(async (m: any) => {
           const attachments = await loadAttachments(m.id);
+          const replyTo = await loadDMReplyInfo(m.reply_to_id, nameMap);
           return {
             id: m.id,
             senderId: m.sender_id,
@@ -76,12 +105,13 @@ export function useDirectMessages(userId: string, friendId: string | null) {
             imageUrl: m.image_url,
             timestamp: new Date(m.created_at),
             attachments,
+            replyTo,
           };
         })
       );
       setMessages(msgs);
     }
-  }, [userId, friendId]);
+  }, [userId, friendId, buildNameMap]);
 
   useEffect(() => {
     loadMessages();
@@ -105,6 +135,8 @@ export function useDirectMessages(userId: string, friendId: string | null) {
           ) {
             const isOwnMessage = m.sender_id === userId;
             const attachments = await loadAttachments(m.id);
+            const nameMap = buildNameMap();
+            const replyTo = await loadDMReplyInfo(m.reply_to_id, nameMap);
             setMessages((prev) => {
               if (prev.some((msg) => msg.id === m.id)) return prev;
               return [
@@ -117,6 +149,7 @@ export function useDirectMessages(userId: string, friendId: string | null) {
                   imageUrl: m.image_url,
                   timestamp: new Date(m.created_at),
                   attachments,
+                  replyTo,
                 },
               ];
             });
@@ -137,14 +170,13 @@ export function useDirectMessages(userId: string, friendId: string | null) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, friendId]);
+  }, [userId, friendId, buildNameMap]);
 
   const sendMessage = useCallback(
-    async (text?: string, pendingAttachments?: PendingAttachment[]) => {
+    async (text?: string, pendingAttachments?: PendingAttachment[], replyToId?: string) => {
       if (!friendId) return;
 
       let attachmentData: AttachmentData[] = [];
-      // Legacy single image support
       let imageUrl: string | null = null;
 
       if (pendingAttachments && pendingAttachments.length > 0) {
@@ -176,7 +208,8 @@ export function useDirectMessages(userId: string, friendId: string | null) {
           receiver_id: friendId,
           text: text || null,
           image_url: imageUrl,
-        })
+          reply_to_id: replyToId || null,
+        } as any)
         .select("id")
         .single();
 
@@ -201,5 +234,9 @@ export function useDirectMessages(userId: string, friendId: string | null) {
     [userId, friendId]
   );
 
-  return { messages, sendMessage, uploading, uploadProgress };
+  const deleteMessage = useCallback(async (messageId: string) => {
+    await supabase.from("direct_messages").delete().eq("id", messageId);
+  }, []);
+
+  return { messages, sendMessage, deleteMessage, uploading, uploadProgress };
 }

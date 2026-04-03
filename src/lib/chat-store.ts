@@ -13,6 +13,12 @@ export interface MessageAttachment {
   size: number;
 }
 
+export interface ReplyInfo {
+  id: string;
+  sender: string;
+  text: string;
+}
+
 export interface Message {
   id: string;
   text: string;
@@ -22,6 +28,7 @@ export interface Message {
   timestamp: Date;
   roomId: string;
   attachments: MessageAttachment[];
+  replyTo: ReplyInfo | null;
 }
 
 export interface Room {
@@ -71,6 +78,17 @@ async function loadAttachments(messageId: string, messageType: string): Promise<
   }));
 }
 
+async function loadReplyInfo(replyToId: string | null): Promise<ReplyInfo | null> {
+  if (!replyToId) return null;
+  const { data } = await supabase
+    .from("chat_messages")
+    .select("id, sender, text")
+    .eq("id", replyToId)
+    .single();
+  if (!data) return null;
+  return { id: data.id, sender: data.sender, text: data.text };
+}
+
 export function useChatStore(userId: string, username: string) {
   const [currentRoom, setCurrentRoom] = useState<string>("geral");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -99,6 +117,7 @@ export function useChatStore(userId: string, username: string) {
         data.map(async (m: any) => {
           const profile = m.user_id ? await getProfile(m.user_id) : { username: m.sender, avatar_url: null };
           const attachments = await loadAttachments(m.id, "chat");
+          const replyTo = await loadReplyInfo(m.reply_to_id);
           return {
             id: m.id,
             text: m.text,
@@ -108,6 +127,7 @@ export function useChatStore(userId: string, username: string) {
             timestamp: new Date(m.created_at),
             roomId: m.room_id,
             attachments,
+            replyTo,
           };
         })
       );
@@ -128,6 +148,7 @@ export function useChatStore(userId: string, username: string) {
           const profile = m.user_id ? await getProfile(m.user_id) : { username: m.sender, avatar_url: null };
           const isOwnMessage = m.user_id === userId;
           const attachments = await loadAttachments(m.id, "chat");
+          const replyTo = await loadReplyInfo(m.reply_to_id);
           setMessages((prev) => {
             if (prev.some((msg) => msg.id === m.id)) return prev;
             return [
@@ -141,6 +162,7 @@ export function useChatStore(userId: string, username: string) {
                 timestamp: new Date(m.created_at),
                 roomId: m.room_id,
                 attachments,
+                replyTo,
               },
             ];
           });
@@ -201,7 +223,7 @@ export function useChatStore(userId: string, username: string) {
   }, [username]);
 
   const sendMessage = useCallback(
-    async (text: string, pendingAttachments?: PendingAttachment[]) => {
+    async (text: string, pendingAttachments?: PendingAttachment[], replyToId?: string) => {
       console.log("[ChatStore] Sending message:", { text, userId, username, currentRoom, attachments: pendingAttachments?.length });
 
       let attachmentData: AttachmentData[] = [];
@@ -239,7 +261,8 @@ export function useChatStore(userId: string, username: string) {
           sender: username,
           room_id: currentRoom,
           user_id: userId,
-        })
+          reply_to_id: replyToId || null,
+        } as any)
         .select("id")
         .single();
 
