@@ -31,11 +31,11 @@ export interface Room {
 }
 
 export const ROOMS: Room[] = [
-  { id: "geral", name: "Bate-Papo", emoji: "💬" },
-  { id: "jogos", name: "Métodos/Sites", emoji: "📁" },
-  { id: "musica", name: "Sobre escola", emoji: "🏫" },
-  { id: "random", name: "Caos/Zoeira", emoji: "🔥" },
-  { id: "tecnologia", name: "Atualizações", emoji: "📢" },
+  { id: "geral", name: "​Bate-Papo", emoji: "💬" },
+  { id: "jogos", name: "​Métodos/Sites", emoji: "​📁" },
+  { id: "musica", name: "​Sobre escola", emoji: "​🏫" },
+  { id: "random", name: "​Caos/Zoeira", emoji: "​🔥" },
+  { id: "tecnologia", name: "​Atualizações", emoji: "​📢" },
 ];
 
 const profileCache = new Map<string, { username: string; avatar_url: string | null }>();
