@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          reply_to_id: string | null
           room_id: string
           sender: string
           text: string
@@ -26,6 +27,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          reply_to_id?: string | null
           room_id?: string
           sender: string
           text: string
@@ -34,6 +36,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          reply_to_id?: string | null
           room_id?: string
           sender?: string
           text?: string
@@ -55,6 +58,7 @@ export type Database = {
           id: string
           image_url: string | null
           receiver_id: string
+          reply_to_id: string | null
           sender_id: string
           text: string | null
         }
@@ -63,6 +67,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           receiver_id: string
+          reply_to_id?: string | null
           sender_id: string
           text?: string | null
         }
@@ -71,6 +76,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           receiver_id?: string
+          reply_to_id?: string | null
           sender_id?: string
           text?: string | null
         }

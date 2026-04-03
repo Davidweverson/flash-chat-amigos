@@ -8,7 +8,7 @@ import { AddFriendModal } from "./AddFriendModal";
 import { DMView } from "./DMView";
 import { ImageLightbox } from "./ImageLightbox";
 import { ROOMS } from "@/lib/chat-store";
-import type { Message } from "@/lib/chat-store";
+import type { Message, ReplyInfo } from "@/lib/chat-store";
 import type { Profile } from "@/hooks/useAuth";
 import type { Friend, FriendRequest } from "@/hooks/useFriends";
 import type { PendingAttachment } from "@/lib/image-utils";
@@ -23,7 +23,7 @@ interface ChatLayoutProps {
   typingUsers: string[];
   onlineUsers: string[];
   onRoomChange: (id: string) => void;
-  onSendMessage: (text: string, attachments?: PendingAttachment[]) => void;
+  onSendMessage: (text: string, attachments?: PendingAttachment[], replyToId?: string) => void;
   onDeleteMessage: (id: string) => void;
   onTyping: () => void;
   onLogout: () => void;
@@ -67,6 +67,7 @@ export function ChatLayout({
   const [addFriendOpen, setAddFriendOpen] = useState(false);
   const [activeDMFriend, setActiveDMFriend] = useState<Friend | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<ReplyInfo | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const room = ROOMS.find((r) => r.id === currentRoom);
 
@@ -78,7 +79,17 @@ export function ChatLayout({
   const handleBackToRoom = () => setActiveDMFriend(null);
   const handleRoomChange = (id: string) => {
     setActiveDMFriend(null);
+    setReplyingTo(null);
     onRoomChange(id);
+  };
+
+  const handleReply = (message: Message) => {
+    setReplyingTo({ id: message.id, sender: message.sender, text: message.text });
+  };
+
+  const handleSendMessage = (text: string, attachments?: PendingAttachment[], replyToId?: string) => {
+    onSendMessage(text, attachments, replyToId);
+    setReplyingTo(null);
   };
 
   return (
@@ -137,8 +148,9 @@ export function ChatLayout({
                 message={msg}
                 isOwn={msg.senderId === userId}
                 isAdmin={isAdmin}
-                onDelete={isAdmin ? onDeleteMessage : undefined}
+                onDelete={onDeleteMessage}
                 onImageClick={setLightboxSrc}
+                onReply={handleReply}
               />
             ))}
             <TypingIndicator users={typingUsers} />
@@ -146,10 +158,12 @@ export function ChatLayout({
           </div>
 
           <ChatInput
-            onSend={onSendMessage}
+            onSend={handleSendMessage}
             onTyping={onTyping}
             uploading={uploading}
             uploadProgress={uploadProgress}
+            replyingTo={replyingTo}
+            onCancelReply={() => setReplyingTo(null)}
           />
         </div>
       )}

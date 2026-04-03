@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Trash2, Play } from "lucide-react";
+import { Trash2, Play, Reply } from "lucide-react";
 import type { Message } from "@/lib/chat-store";
 import { isVideoUrl, isGifUrl } from "@/lib/image-utils";
 
@@ -14,13 +14,16 @@ interface MessageBubbleProps {
   isAdmin?: boolean;
   onDelete?: (id: string) => void;
   onImageClick?: (url: string) => void;
+  onReply?: (message: Message) => void;
 }
 
-export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick }: MessageBubbleProps) {
+export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick, onReply }: MessageBubbleProps) {
   const time = message.timestamp.toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  const canDelete = isOwn || isAdmin;
 
   return (
     <motion.div
@@ -50,6 +53,17 @@ export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick 
               ${isOwn ? "chat-bubble-own rounded-br-md" : "chat-bubble-other rounded-bl-md"}
             `}
           >
+            {/* Reply quote */}
+            {message.replyTo && (
+              <div className="flex items-stretch gap-0 mb-2 rounded-lg overflow-hidden bg-black/10">
+                <div className="w-1 bg-primary flex-shrink-0" />
+                <div className="px-2.5 py-1.5 min-w-0">
+                  <p className="text-xs font-semibold text-primary truncate">{message.replyTo.sender}</p>
+                  <p className="text-xs opacity-70 truncate">{message.replyTo.text || "📎 Anexo"}</p>
+                </div>
+              </div>
+            )}
+
             {/* Attachments */}
             {message.attachments && message.attachments.length > 0 && (
               <div className={`flex flex-col gap-1.5 ${message.text ? "mb-2" : ""}`}>
@@ -105,15 +119,27 @@ export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick 
             </p>
           </div>
 
-          {isAdmin && onDelete && (
-            <button
-              onClick={() => onDelete(message.id)}
-              className="absolute -right-8 top-1/2 -translate-y-1/2 p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
-              title="Apagar mensagem"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          )}
+          {/* Action buttons */}
+          <div className={`absolute ${isOwn ? "-left-16" : "-right-16"} top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all`}>
+            {onReply && (
+              <button
+                onClick={() => onReply(message)}
+                className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+                title="Responder"
+              >
+                <Reply className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {canDelete && onDelete && (
+              <button
+                onClick={() => onDelete(message.id)}
+                className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                title="Apagar mensagem"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </motion.div>
