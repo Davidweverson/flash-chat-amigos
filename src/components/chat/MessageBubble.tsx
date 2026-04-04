@@ -134,7 +134,7 @@ export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick,
                 loading="lazy"
               />
             ) : message.text ? (
-              <p>{message.text}</p>
+              <p>{linkifyText(message.text)}</p>
             ) : null}
             <p className={`text-[10px] mt-1 ${isOwn ? "text-chat-own-foreground/60" : "text-muted-foreground"} text-right`}>
               {time}
