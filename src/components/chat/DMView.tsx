@@ -1,12 +1,25 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, type ReactNode } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, Smile, Plus, Image as ImageIcon, Trash2, Reply, X } from "lucide-react";
+import { ArrowLeft, Send, Smile, Plus, Image as ImageIcon, Trash2, Reply, X, Copy, Check } from "lucide-react";
 import { useDirectMessages, type DirectMessage, type DMReplyInfo } from "@/hooks/useDirectMessages";
 import { AttachmentTray } from "./AttachmentTray";
 import { ImageLightbox } from "./ImageLightbox";
 import { GifPicker } from "./GifPicker";
 import { createPendingAttachment, revokePendingAttachments, ACCEPTED_MEDIA_TYPES, isAcceptedFile, isVideoUrl, isGifUrl, type PendingAttachment } from "@/lib/image-utils";
 import type { Friend } from "@/hooks/useFriends";
+
+const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
+
+function linkifyText(text: string): ReactNode[] {
+  const parts = text.split(URL_REGEX);
+  return parts.map((part, i) =>
+    URL_REGEX.test(part) ? (
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="font-bold underline hover:opacity-80 transition-opacity">{part}</a>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
 
 const QUICK_EMOJIS = ["😂", "🔥", "❤️", "👍", "😎", "🎉", "💯", "😭", "🤔", "👀", "✨", "🙌"];
 
@@ -28,9 +41,16 @@ function DMBubble({ msg, isOwn, onImageClick, onDelete, onReply }: {
   onDelete?: (id: string) => void;
   onReply?: (msg: DirectMessage) => void;
 }) {
+  const [copied, setCopied] = useState(false);
   const time = msg.timestamp.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const hasAttachments = msg.attachments && msg.attachments.length > 0;
   const hasLegacyImage = msg.imageUrl && !hasAttachments;
+  const handleCopy = () => {
+    if (!msg.text) return;
+    navigator.clipboard.writeText(msg.text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   return (
     <motion.div
@@ -113,7 +133,7 @@ function DMBubble({ msg, isOwn, onImageClick, onDelete, onReply }: {
                 loading="lazy"
               />
             ) : msg.text ? (
-              <p>{msg.text}</p>
+              <p>{linkifyText(msg.text)}</p>
             ) : null}
             <p className={`text-[10px] mt-1 ${isOwn ? "text-chat-own-foreground/60" : "text-muted-foreground"} text-right`}>
               {time}
@@ -121,7 +141,16 @@ function DMBubble({ msg, isOwn, onImageClick, onDelete, onReply }: {
           </div>
 
           {/* Action buttons */}
-          <div className={`absolute ${isOwn ? "-left-16" : "-right-16"} top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all`}>
+          <div className={`absolute ${isOwn ? "-left-20" : "-right-20"} top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all`}>
+            {msg.text && !isGiphyUrl(msg.text) && (
+              <button
+                onClick={handleCopy}
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                title="Copiar mensagem"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+            )}
             {onReply && (
               <button
                 onClick={() => onReply(msg)}

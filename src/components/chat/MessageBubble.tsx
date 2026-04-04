@@ -1,7 +1,21 @@
 import { motion } from "framer-motion";
-import { Trash2, Play, Reply } from "lucide-react";
+import { Trash2, Play, Reply, Copy, Check } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import type { Message } from "@/lib/chat-store";
 import { isVideoUrl, isGifUrl } from "@/lib/image-utils";
+
+const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
+
+function linkifyText(text: string): ReactNode[] {
+  const parts = text.split(URL_REGEX);
+  return parts.map((part, i) =>
+    URL_REGEX.test(part) ? (
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="font-bold underline hover:opacity-80 transition-opacity">{part}</a>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
 
 function isGiphyUrl(text: string): boolean {
   return /^https?:\/\/.*giphy\.com\/.*\.(gif|webp)/i.test(text.trim()) ||
@@ -18,12 +32,20 @@ interface MessageBubbleProps {
 }
 
 export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick, onReply }: MessageBubbleProps) {
+  const [copied, setCopied] = useState(false);
   const time = message.timestamp.toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
   });
 
   const canDelete = isOwn || isAdmin;
+
+  const handleCopy = () => {
+    if (!message.text) return;
+    navigator.clipboard.writeText(message.text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   return (
     <motion.div
@@ -112,7 +134,7 @@ export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick,
                 loading="lazy"
               />
             ) : message.text ? (
-              <p>{message.text}</p>
+              <p>{linkifyText(message.text)}</p>
             ) : null}
             <p className={`text-[10px] mt-1 ${isOwn ? "text-chat-own-foreground/60" : "text-muted-foreground"} text-right`}>
               {time}
@@ -120,7 +142,16 @@ export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick,
           </div>
 
           {/* Action buttons */}
-          <div className={`absolute ${isOwn ? "-left-16" : "-right-16"} top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all`}>
+          <div className={`absolute ${isOwn ? "-left-20" : "-right-20"} top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all`}>
+            {message.text && !isGiphyUrl(message.text) && (
+              <button
+                onClick={handleCopy}
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                title="Copiar mensagem"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+            )}
             {onReply && (
               <button
                 onClick={() => onReply(message)}
