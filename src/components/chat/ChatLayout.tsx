@@ -63,6 +63,7 @@ export function ChatLayout({
   onAcceptRequest,
   onRejectRequest,
   onRemoveFriend,
+  unreadCounts,
 }: ChatLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [addFriendOpen, setAddFriendOpen] = useState(false);
