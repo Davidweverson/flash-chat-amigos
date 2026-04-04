@@ -37,6 +37,7 @@ interface ChatLayoutProps {
   onAcceptRequest: (id: string) => void;
   onRejectRequest: (id: string) => void;
   onRemoveFriend: (friendshipId: string) => void;
+  unreadCounts: Record<string, number>;
 }
 
 export function ChatLayout({
