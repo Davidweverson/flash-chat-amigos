@@ -367,5 +367,6 @@ export function useChatStore(userId: string, username: string) {
     sendTyping,
     uploading,
     uploadProgress,
+    unreadCounts,
   };
 }
