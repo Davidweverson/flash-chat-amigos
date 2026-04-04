@@ -42,7 +42,8 @@ export function ChatSidebar({
   onRemoveFriend,
   onOpenAddFriend,
   onOpenDM,
-  activeDMFriendId
+  activeDMFriendId,
+  unreadCounts,
 }: ChatSidebarProps) {
   return (
     <>
