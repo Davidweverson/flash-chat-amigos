@@ -96,12 +96,22 @@ export function useChatStore(userId: string, username: string) {
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const currentRoomRef = useRef(currentRoom);
 
   useEffect(() => {
     currentRoomRef.current = currentRoom;
+    // Reset unread count when entering a room
+    setUnreadCounts((prev) => {
+      if (prev[currentRoom]) {
+        const next = { ...prev };
+        delete next[currentRoom];
+        return next;
+      }
+      return prev;
+    });
   }, [currentRoom]);
 
   const loadMessages = useCallback(async (roomId: string) => {
