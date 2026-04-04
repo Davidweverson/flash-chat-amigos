@@ -194,6 +194,33 @@ export function useChatStore(userId: string, username: string) {
     };
   }, [currentRoom, loadMessages]);
 
+  // Global listener for unread counts on other rooms
+  useEffect(() => {
+    const unreadChannel = supabase
+      .channel("unread-global")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_messages" },
+        (payload) => {
+          const m = payload.new as any;
+          const isOwnMessage = m.user_id === userId;
+          if (isOwnMessage) return;
+          // Only count if it's not the current room
+          if (m.room_id !== currentRoomRef.current) {
+            setUnreadCounts((prev) => ({
+              ...prev,
+              [m.room_id]: (prev[m.room_id] || 0) + 1,
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(unreadChannel);
+    };
+  }, [userId]);
+
   // Presence channel
   useEffect(() => {
     if (!username) return;
