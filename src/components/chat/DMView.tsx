@@ -126,7 +126,7 @@ function DMBubble({ msg, isOwn, onImageClick, onDelete, onReply }: {
                 loading="lazy"
               />
             ) : msg.text ? (
-              <p>{msg.text}</p>
+              <p>{linkifyText(msg.text)}</p>
             ) : null}
             <p className={`text-[10px] mt-1 ${isOwn ? "text-chat-own-foreground/60" : "text-muted-foreground"} text-right`}>
               {time}
