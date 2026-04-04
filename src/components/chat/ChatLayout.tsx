@@ -119,6 +119,7 @@ export function ChatLayout({
         onOpenAddFriend={() => setAddFriendOpen(true)}
         onOpenDM={handleOpenDM}
         activeDMFriendId={activeDMFriend?.id || null}
+        unreadCounts={unreadCounts}
       />
 
       {activeDMFriend ? (
