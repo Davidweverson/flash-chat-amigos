@@ -1,7 +1,21 @@
 import { motion } from "framer-motion";
-import { Trash2, Play, Reply } from "lucide-react";
+import { Trash2, Play, Reply, Copy, Check } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import type { Message } from "@/lib/chat-store";
 import { isVideoUrl, isGifUrl } from "@/lib/image-utils";
+
+const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
+
+function linkifyText(text: string): ReactNode[] {
+  const parts = text.split(URL_REGEX);
+  return parts.map((part, i) =>
+    URL_REGEX.test(part) ? (
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="font-bold underline hover:opacity-80 transition-opacity">{part}</a>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
 
 function isGiphyUrl(text: string): boolean {
   return /^https?:\/\/.*giphy\.com\/.*\.(gif|webp)/i.test(text.trim()) ||
