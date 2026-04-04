@@ -109,7 +109,7 @@ export function useChatStore(userId: string, username: string) {
       .from("chat_messages")
       .select("*")
       .eq("room_id", roomId)
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(100);
 
     if (!error && data) {
@@ -131,7 +131,7 @@ export function useChatStore(userId: string, username: string) {
           };
         })
       );
-      setMessages(msgs);
+      setMessages(msgs.reverse());
     }
   }, []);
 

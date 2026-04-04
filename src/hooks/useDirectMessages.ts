@@ -88,7 +88,7 @@ export function useDirectMessages(userId: string, friendId: string | null, frien
       .or(
         `and(sender_id.eq.${userId},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${userId})`
       )
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(100);
 
     if (data) {
@@ -109,7 +109,7 @@ export function useDirectMessages(userId: string, friendId: string | null, frien
           };
         })
       );
-      setMessages(msgs);
+      setMessages(msgs.reverse());
     }
   }, [userId, friendId, buildNameMap]);
 
