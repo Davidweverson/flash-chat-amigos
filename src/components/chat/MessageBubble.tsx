@@ -32,12 +32,20 @@ interface MessageBubbleProps {
 }
 
 export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick, onReply }: MessageBubbleProps) {
+  const [copied, setCopied] = useState(false);
   const time = message.timestamp.toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
   });
 
   const canDelete = isOwn || isAdmin;
+
+  const handleCopy = () => {
+    if (!message.text) return;
+    navigator.clipboard.writeText(message.text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   return (
     <motion.div
