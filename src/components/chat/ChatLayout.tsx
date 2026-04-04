@@ -71,8 +71,14 @@ export function ChatLayout({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const room = ROOMS.find((r) => r.id === currentRoom);
 
+  const prevMessagesLenRef = useRef(messages.length);
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Only auto-scroll when new messages arrive, not on typing indicator changes
+    if (messages.length > prevMessagesLenRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevMessagesLenRef.current = messages.length;
   }, [messages]);
 
   const handleOpenDM = (friend: Friend) => setActiveDMFriend(friend);
