@@ -159,9 +159,10 @@ export function ChatLayout({
                 onReply={handleReply}
               />
             ))}
-            <TypingIndicator users={typingUsers} />
             <div ref={messagesEndRef} />
           </div>
+
+          <TypingIndicator users={typingUsers} />
 
           <ChatInput
             onSend={handleSendMessage}
