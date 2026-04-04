@@ -58,6 +58,7 @@ const Index = () => {
       onAcceptRequest={acceptRequest}
       onRejectRequest={rejectRequest}
       onRemoveFriend={removeFriend}
+      unreadCounts={chat.unreadCounts}
     />
   );
 };

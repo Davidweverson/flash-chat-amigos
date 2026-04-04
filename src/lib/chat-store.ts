@@ -96,12 +96,22 @@ export function useChatStore(userId: string, username: string) {
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const currentRoomRef = useRef(currentRoom);
 
   useEffect(() => {
     currentRoomRef.current = currentRoom;
+    // Reset unread count when entering a room
+    setUnreadCounts((prev) => {
+      if (prev[currentRoom]) {
+        const next = { ...prev };
+        delete next[currentRoom];
+        return next;
+      }
+      return prev;
+    });
   }, [currentRoom]);
 
   const loadMessages = useCallback(async (roomId: string) => {
@@ -183,6 +193,33 @@ export function useChatStore(userId: string, username: string) {
       supabase.removeChannel(msgChannel);
     };
   }, [currentRoom, loadMessages]);
+
+  // Global listener for unread counts on other rooms
+  useEffect(() => {
+    const unreadChannel = supabase
+      .channel("unread-global")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_messages" },
+        (payload) => {
+          const m = payload.new as any;
+          const isOwnMessage = m.user_id === userId;
+          if (isOwnMessage) return;
+          // Only count if it's not the current room
+          if (m.room_id !== currentRoomRef.current) {
+            setUnreadCounts((prev) => ({
+              ...prev,
+              [m.room_id]: (prev[m.room_id] || 0) + 1,
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(unreadChannel);
+    };
+  }, [userId]);
 
   // Presence channel
   useEffect(() => {
@@ -330,5 +367,6 @@ export function useChatStore(userId: string, username: string) {
     sendTyping,
     uploading,
     uploadProgress,
+    unreadCounts,
   };
 }

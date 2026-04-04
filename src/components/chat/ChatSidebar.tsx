@@ -23,6 +23,7 @@ interface ChatSidebarProps {
   onOpenAddFriend: () => void;
   onOpenDM: (friend: Friend) => void;
   activeDMFriendId: string | null;
+  unreadCounts: Record<string, number>;
 }
 
 export function ChatSidebar({
@@ -41,7 +42,8 @@ export function ChatSidebar({
   onRemoveFriend,
   onOpenAddFriend,
   onOpenDM,
-  activeDMFriendId
+  activeDMFriendId,
+  unreadCounts,
 }: ChatSidebarProps) {
   return (
     <>
@@ -74,23 +76,34 @@ export function ChatSidebar({
           {/* Rooms */}
           <div className="p-3 space-y-1">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-2">Salas</p>
-            {ROOMS.map((room) =>
-            <motion.button
-              key={room.id}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => {onRoomChange(room.id);onClose();}}
-              className={`
-                  w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all
-                  ${currentRoom === room.id && !activeDMFriendId ?
-              "bg-primary/10 text-primary shadow-sm" :
-              "text-sidebar-foreground hover:bg-sidebar-accent"}
-                `
-              }>
-              
-                <span className="text-base">{room.emoji}</span>
-                <span>{room.name}</span>
-              </motion.button>
-            )}
+            {ROOMS.map((room) => {
+              const unread = unreadCounts[room.id] || 0;
+              const isActive = currentRoom === room.id && !activeDMFriendId;
+              return (
+                <motion.button
+                  key={room.id}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {onRoomChange(room.id);onClose();}}
+                  className={`
+                    w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all
+                    ${isActive
+                      ? "bg-primary/10 text-primary shadow-sm"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent"}
+                  `}
+                >
+                  <span className="text-base">{room.emoji}</span>
+                  <span className="flex-1 text-left">{room.name}</span>
+                  {unread > 0 && (
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                      <span className="text-[10px] font-bold bg-primary text-primary-foreground rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                        {unread > 99 ? "99+" : unread}
+                      </span>
+                    </span>
+                  )}
+                </motion.button>
+              );
+            })}
           </div>
 
           {/* Pending requests */}
