@@ -131,7 +131,7 @@ export function useChatStore(userId: string, username: string) {
           };
         })
       );
-      setMessages(msgs);
+      setMessages(msgs.reverse());
     }
   }, []);
 

@@ -109,7 +109,7 @@ export function useDirectMessages(userId: string, friendId: string | null, frien
           };
         })
       );
-      setMessages(msgs);
+      setMessages(msgs.reverse());
     }
   }, [userId, friendId, buildNameMap]);
 
