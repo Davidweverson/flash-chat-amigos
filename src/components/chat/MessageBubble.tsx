@@ -142,7 +142,16 @@ export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick,
           </div>
 
           {/* Action buttons */}
-          <div className={`absolute ${isOwn ? "-left-16" : "-right-16"} top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all`}>
+          <div className={`absolute ${isOwn ? "-left-20" : "-right-20"} top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all`}>
+            {message.text && !isGiphyUrl(message.text) && (
+              <button
+                onClick={handleCopy}
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                title="Copiar mensagem"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+            )}
             {onReply && (
               <button
                 onClick={() => onReply(message)}
