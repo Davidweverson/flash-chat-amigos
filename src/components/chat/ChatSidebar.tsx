@@ -23,6 +23,7 @@ interface ChatSidebarProps {
   onOpenAddFriend: () => void;
   onOpenDM: (friend: Friend) => void;
   activeDMFriendId: string | null;
+  unreadCounts: Record<string, number>;
 }
 
 export function ChatSidebar({
