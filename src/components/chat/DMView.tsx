@@ -41,9 +41,16 @@ function DMBubble({ msg, isOwn, onImageClick, onDelete, onReply }: {
   onDelete?: (id: string) => void;
   onReply?: (msg: DirectMessage) => void;
 }) {
+  const [copied, setCopied] = useState(false);
   const time = msg.timestamp.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const hasAttachments = msg.attachments && msg.attachments.length > 0;
   const hasLegacyImage = msg.imageUrl && !hasAttachments;
+  const handleCopy = () => {
+    if (!msg.text) return;
+    navigator.clipboard.writeText(msg.text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   return (
     <motion.div
