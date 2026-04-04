@@ -1,12 +1,25 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, type ReactNode } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, Smile, Plus, Image as ImageIcon, Trash2, Reply, X } from "lucide-react";
+import { ArrowLeft, Send, Smile, Plus, Image as ImageIcon, Trash2, Reply, X, Copy, Check } from "lucide-react";
 import { useDirectMessages, type DirectMessage, type DMReplyInfo } from "@/hooks/useDirectMessages";
 import { AttachmentTray } from "./AttachmentTray";
 import { ImageLightbox } from "./ImageLightbox";
 import { GifPicker } from "./GifPicker";
 import { createPendingAttachment, revokePendingAttachments, ACCEPTED_MEDIA_TYPES, isAcceptedFile, isVideoUrl, isGifUrl, type PendingAttachment } from "@/lib/image-utils";
 import type { Friend } from "@/hooks/useFriends";
+
+const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
+
+function linkifyText(text: string): ReactNode[] {
+  const parts = text.split(URL_REGEX);
+  return parts.map((part, i) =>
+    URL_REGEX.test(part) ? (
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="font-bold underline hover:opacity-80 transition-opacity">{part}</a>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
 
 const QUICK_EMOJIS = ["😂", "🔥", "❤️", "👍", "😎", "🎉", "💯", "😭", "🤔", "👀", "✨", "🙌"];
 
