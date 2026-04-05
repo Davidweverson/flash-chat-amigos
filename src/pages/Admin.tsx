@@ -86,7 +86,7 @@ export default function Admin() {
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="text-green-400 text-sm bg-green-400/10 py-2 px-3 rounded-lg flex items-center gap-2"
+                  className="text-primary text-sm bg-primary/10 py-2 px-3 rounded-lg flex items-center gap-2"
                 >
                   <CheckCircle className="w-4 h-4" />
                   {success}
