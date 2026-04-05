@@ -2,10 +2,9 @@ import { ChatLayout } from "@/components/chat/ChatLayout";
 import { useChatStore } from "@/lib/chat-store";
 import { useAuth } from "@/hooks/useAuth";
 import { useFriends } from "@/hooks/useFriends";
-import Auth from "./Auth";
 
 const Index = () => {
-  const { user, profile, isAdmin, loading, enter, logout } = useAuth();
+  const { user, profile, isAdmin, signOut } = useAuth();
 
   const chat = useChatStore(
     user?.id || "",
@@ -22,16 +21,12 @@ const Index = () => {
     removeFriend,
   } = useFriends(user?.id || "");
 
-  if (loading) {
+  if (!user || !profile) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
       </div>
     );
-  }
-
-  if (!user || !profile) {
-    return <Auth onEnter={enter} />;
   }
 
   return (
@@ -48,7 +43,7 @@ const Index = () => {
       onSendMessage={chat.sendMessage}
       onDeleteMessage={chat.deleteMessage}
       onTyping={chat.sendTyping}
-      onLogout={logout}
+      onLogout={signOut}
       uploading={chat.uploading}
       uploadProgress={chat.uploadProgress}
       friends={friends}

@@ -178,23 +178,29 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          banned: boolean
           created_at: string
           friend_code: string | null
           id: string
+          role: string
           username: string
         }
         Insert: {
           avatar_url?: string | null
+          banned?: boolean
           created_at?: string
           friend_code?: string | null
           id: string
+          role?: string
           username: string
         }
         Update: {
           avatar_url?: string | null
+          banned?: boolean
           created_at?: string
           friend_code?: string | null
           id?: string
+          role?: string
           username?: string
         }
         Relationships: []
