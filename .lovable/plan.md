@@ -1,33 +1,49 @@
 
-## Plano: Autenticação com Supabase Auth Nativo
 
-### ⚠️ Aviso Importante
-O sistema atual usa autenticação customizada (localStorage + perfis sem vínculo ao Supabase Auth). **Usuários existentes não poderão fazer login após a migração** — precisarão se registrar novamente.
+## Plan: Delete Own Messages + Reply System
 
-### 1. Migração do Banco de Dados
-- Adicionar coluna `role` (text, default 'user') e `banned` (boolean, default false) na tabela `profiles`
-- Recriar trigger `handle_new_user` para criar perfil automaticamente no signup
-- Atualizar RLS policies da tabela `profiles`
+### 1. Delete own messages
 
-### 2. Páginas de Autenticação
-- `/register` — formulário com username, email, senha, confirmar senha
-- `/login` — formulário com email e senha
-- Validações client-side (username 3-20 chars alfanuméricos, email válido, senha min 8 chars)
+**Current state:** Only admins can delete messages (line 108-116 in MessageBubble, line 139-140 in ChatLayout).
 
-### 3. Proteção de Rotas
-- Componente `ProtectedRoute` que verifica sessão via `supabase.auth.getUser()`
-- Componente `AdminRoute` que verifica role = 'admin'
-- Hook `useAuth` reescrito para usar Supabase Auth real
+**Changes:**
+- **MessageBubble.tsx**: Show delete button when `isOwn` is true (not just `isAdmin`). Add a swipe/long-press or hover trash icon for own messages.
+- **ChatLayout.tsx**: Pass `onDeleteMessage` for own messages too (currently gated by `isAdmin`).
+- **DMView.tsx**: Add delete functionality for DM messages (currently missing entirely).
+- **useDirectMessages.ts**: Add a `deleteMessage` function that calls `supabase.from("direct_messages").delete().eq("id", messageId)`.
 
-### 4. Página Admin (`/admin`)
-- Protegida para role = 'admin' apenas
-- Formulário para banir usuários por email/username
-- Edge Function `ban-user` que valida role server-side antes de executar
+### 2. Reply system
 
-### 5. Dashboard (`/dashboard`)
-- Mostra username, email e role do usuário logado
-- Botão de logout
+**Database:** Add `reply_to_id` column to both `chat_messages` and `direct_messages` tables via migration.
 
-### 6. Integração com Chat Existente
-- Atualizar `Index.tsx` para usar o novo sistema de auth
-- Manter compatibilidade com o chat existente
+**Data flow:**
+- **Message interface** (`chat-store.ts`): Add `replyTo` field containing `{ id, sender, text }` of the replied message.
+- **DirectMessage interface** (`useDirectMessages.ts`): Same addition.
+- **Loading messages**: JOIN or fetch the replied message's sender/text when `reply_to_id` is set.
+- **Sending messages**: Pass `reply_to_id` in the insert call.
+
+**UI components:**
+- **ChatInput.tsx / DMView input**: Add a `replyingTo` state. When set, show a small banner above the input (sender name + truncated text + X to cancel), similar to WhatsApp/Telegram.
+- **MessageBubble.tsx / DMBubble**: When `message.replyTo` exists, render a quoted block above the message content (colored bar on the left, sender name in bold, truncated text).
+- **Interaction**: Add a "Reply" button (arrow icon) that appears on hover/touch alongside the delete button. Clicking it sets the `replyingTo` state in the parent.
+
+### 3. Files to modify
+
+| File | Changes |
+|------|---------|
+| `supabase/migrations/` | New migration: add `reply_to_id uuid` to `chat_messages` and `direct_messages` |
+| `src/lib/chat-store.ts` | Add `replyTo` to Message type, load reply data, pass `reply_to_id` on send |
+| `src/hooks/useDirectMessages.ts` | Same + add `deleteMessage` function |
+| `src/components/chat/MessageBubble.tsx` | Show delete for own msgs, add reply button, render reply quote block |
+| `src/components/chat/ChatInput.tsx` | Add `replyingTo` prop, render reply banner |
+| `src/components/chat/DMView.tsx` | Add reply + delete state/handlers, render reply banner, pass to DMBubble |
+| `src/components/chat/ChatLayout.tsx` | Add reply state, wire reply/delete for own messages |
+| `src/pages/Index.tsx` | Minor wiring if needed |
+
+### 4. UI behavior summary
+
+- **Hover on any message** → shows action buttons (Reply arrow, and Trash if own message or admin)
+- **Click Reply** → shows reply banner above input with quoted message preview
+- **Send with reply** → message includes `reply_to_id`, renders with quoted block
+- **Click quoted block** → scrolls to the original message (nice-to-have)
+
