@@ -5,6 +5,7 @@ import { ROOMS } from "@/lib/chat-store";
 import type { Profile } from "@/hooks/useAuth";
 import type { Friend, FriendRequest } from "@/hooks/useFriends";
 import { FriendRequests } from "./FriendRequests";
+import { ProfileEditModal } from "./ProfileEditModal";
 
 interface ChatSidebarProps {
   currentRoom: string;
@@ -24,6 +25,7 @@ interface ChatSidebarProps {
   onOpenDM: (friend: Friend) => void;
   activeDMFriendId: string | null;
   unreadCounts: Record<string, number>;
+  onProfileUpdated?: () => void;
 }
 
 export function ChatSidebar({
@@ -44,7 +46,10 @@ export function ChatSidebar({
   onOpenDM,
   activeDMFriendId,
   unreadCounts,
+  onProfileUpdated,
 }: ChatSidebarProps) {
+  const [profileEditOpen, setProfileEditOpen] = useState(false);
+
   return (
     <>
       {open &&
@@ -113,7 +118,6 @@ export function ChatSidebar({
               requests={pendingRequests}
               onAccept={onAcceptRequest}
               onReject={onRejectRequest} />
-            
             </div>
           }
 
@@ -128,7 +132,6 @@ export function ChatSidebar({
                 onClick={onOpenAddFriend}
                 className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                 title="Adicionar amigo">
-                
                 <UserPlus className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -150,11 +153,9 @@ export function ChatSidebar({
                   "text-sidebar-foreground hover:bg-sidebar-accent"}
                     `
                   }>
-                  
                     <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {friend.avatar_url ?
                     <img src={friend.avatar_url} alt="" className="w-full h-full object-cover" /> :
-
                     <span className="text-[10px] font-bold text-primary">{friend.username[0]?.toUpperCase()}</span>
                     }
                     </div>
@@ -164,7 +165,6 @@ export function ChatSidebar({
                   onClick={() => onRemoveFriend(friend.friendshipId)}
                   className="p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
                   title="Remover amigo">
-                  
                     <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
@@ -191,16 +191,19 @@ export function ChatSidebar({
           </div>
         </div>
 
-        {/* User section */}
+        {/* User section - clickable avatar */}
         <div className="p-3 border-t border-sidebar-border">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden flex-shrink-0">
+            <button
+              onClick={() => setProfileEditOpen(true)}
+              className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary transition-all cursor-pointer"
+              title="Editar perfil"
+            >
               {profile?.avatar_url ?
               <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> :
-
               <span className="text-primary font-bold text-sm">{username[0]?.toUpperCase()}</span>
               }
-            </div>
+            </button>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">{username}</p>
               <p className="text-xs text-muted-foreground font-mono">{profile?.friend_code || "-----"}</p>
@@ -209,12 +212,21 @@ export function ChatSidebar({
               onClick={onLogout}
               className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
               title="Sair">
-              
               <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
       </aside>
-    </>);
 
+      {/* Profile Edit Modal */}
+      {profile && (
+        <ProfileEditModal
+          open={profileEditOpen}
+          onClose={() => setProfileEditOpen(false)}
+          profile={profile}
+          onSaved={() => onProfileUpdated?.()}
+        />
+      )}
+    </>
+  );
 }
