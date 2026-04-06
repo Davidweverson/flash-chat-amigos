@@ -7,6 +7,7 @@ import { TypingIndicator } from "./TypingIndicator";
 import { AddFriendModal } from "./AddFriendModal";
 import { DMView } from "./DMView";
 import { ImageLightbox } from "./ImageLightbox";
+import { ReportModal } from "./ReportModal";
 import { ROOMS } from "@/lib/chat-store";
 import type { Message, ReplyInfo } from "@/lib/chat-store";
 import type { Profile } from "@/hooks/useAuth";
@@ -29,7 +30,6 @@ interface ChatLayoutProps {
   onLogout: () => void;
   uploading?: boolean;
   uploadProgress?: number | null;
-  // Friends
   friends: Friend[];
   pendingRequests: FriendRequest[];
   friendLoading: boolean;
@@ -38,6 +38,8 @@ interface ChatLayoutProps {
   onRejectRequest: (id: string) => void;
   onRemoveFriend: (friendshipId: string) => void;
   unreadCounts: Record<string, number>;
+  onProfileUpdated?: () => void;
+  isMuted?: boolean;
 }
 
 export function ChatLayout({
@@ -64,19 +66,21 @@ export function ChatLayout({
   onRejectRequest,
   onRemoveFriend,
   unreadCounts,
+  onProfileUpdated,
+  isMuted,
 }: ChatLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [addFriendOpen, setAddFriendOpen] = useState(false);
   const [activeDMFriend, setActiveDMFriend] = useState<Friend | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<ReplyInfo | null>(null);
+  const [reportMessage, setReportMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const room = ROOMS.find((r) => r.id === currentRoom);
 
   const prevMessagesLenRef = useRef(messages.length);
 
   useEffect(() => {
-    // Only auto-scroll when new messages arrive, not on typing indicator changes
     if (messages.length > prevMessagesLenRef.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
@@ -120,6 +124,7 @@ export function ChatLayout({
         onOpenDM={handleOpenDM}
         activeDMFriendId={activeDMFriend?.id || null}
         unreadCounts={unreadCounts}
+        onProfileUpdated={onProfileUpdated}
       />
 
       {activeDMFriend ? (
@@ -160,6 +165,7 @@ export function ChatLayout({
                 onDelete={onDeleteMessage}
                 onImageClick={setLightboxSrc}
                 onReply={handleReply}
+                onReport={(m) => setReportMessage(m)}
               />
             ))}
             <div ref={messagesEndRef} />
@@ -167,14 +173,20 @@ export function ChatLayout({
 
           <TypingIndicator users={typingUsers} />
 
-          <ChatInput
-            onSend={handleSendMessage}
-            onTyping={onTyping}
-            uploading={uploading}
-            uploadProgress={uploadProgress}
-            replyingTo={replyingTo}
-            onCancelReply={() => setReplyingTo(null)}
-          />
+          {isMuted ? (
+            <div className="px-4 py-3 text-center text-sm text-muted-foreground bg-destructive/10 border-t border-border">
+              🔇 Você está mutado e não pode enviar mensagens no momento.
+            </div>
+          ) : (
+            <ChatInput
+              onSend={handleSendMessage}
+              onTyping={onTyping}
+              uploading={uploading}
+              uploadProgress={uploadProgress}
+              replyingTo={replyingTo}
+              onCancelReply={() => setReplyingTo(null)}
+            />
+          )}
         </div>
       )}
 
@@ -187,6 +199,13 @@ export function ChatLayout({
       />
 
       <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+
+      <ReportModal
+        open={!!reportMessage}
+        onClose={() => setReportMessage(null)}
+        message={reportMessage}
+        reporterId={userId}
+      />
     </div>
   );
 }

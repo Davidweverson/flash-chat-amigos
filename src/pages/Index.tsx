@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useFriends } from "@/hooks/useFriends";
 
 const Index = () => {
-  const { user, profile, isAdmin, signOut } = useAuth();
+  const { user, profile, isAdmin, signOut, refetchProfile } = useAuth();
 
   const chat = useChatStore(
     user?.id || "",
@@ -28,6 +28,9 @@ const Index = () => {
       </div>
     );
   }
+
+  // Check if user is currently muted
+  const isMuted = profile.muted_until ? new Date(profile.muted_until) > new Date() : false;
 
   return (
     <ChatLayout
@@ -54,6 +57,8 @@ const Index = () => {
       onRejectRequest={rejectRequest}
       onRemoveFriend={removeFriend}
       unreadCounts={chat.unreadCounts}
+      onProfileUpdated={refetchProfile}
+      isMuted={isMuted}
     />
   );
 };

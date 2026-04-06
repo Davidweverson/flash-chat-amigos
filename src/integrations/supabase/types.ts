@@ -182,6 +182,7 @@ export type Database = {
           created_at: string
           friend_code: string | null
           id: string
+          muted_until: string | null
           role: string
           username: string
         }
@@ -191,6 +192,7 @@ export type Database = {
           created_at?: string
           friend_code?: string | null
           id: string
+          muted_until?: string | null
           role?: string
           username: string
         }
@@ -200,8 +202,48 @@ export type Database = {
           created_at?: string
           friend_code?: string | null
           id?: string
+          muted_until?: string | null
           role?: string
           username?: string
+        }
+        Relationships: []
+      }
+      reports: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          id: string
+          message_id: string | null
+          message_text: string | null
+          reason: string
+          reported_user_id: string
+          reporter_id: string
+          reviewed_at: string | null
+          status: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          message_text?: string | null
+          reason: string
+          reported_user_id: string
+          reporter_id: string
+          reviewed_at?: string | null
+          status?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          message_text?: string | null
+          reason?: string
+          reported_user_id?: string
+          reporter_id?: string
+          reviewed_at?: string | null
+          status?: string
         }
         Relationships: []
       }

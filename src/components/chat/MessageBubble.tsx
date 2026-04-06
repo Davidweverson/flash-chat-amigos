@@ -1,16 +1,22 @@
 import { motion } from "framer-motion";
-import { Trash2, Play, Reply, Copy, Check } from "lucide-react";
+import { Trash2, Play, Reply, Copy, Check, Flag } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type { Message } from "@/lib/chat-store";
 import { isVideoUrl, isGifUrl } from "@/lib/image-utils";
+import { formatMessageTimestamp } from "@/lib/format-timestamp";
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
+
+function truncateUrl(url: string, max = 40): string {
+  if (url.length <= max) return url;
+  return url.slice(0, max) + "...";
+}
 
 function linkifyText(text: string): ReactNode[] {
   const parts = text.split(URL_REGEX);
   return parts.map((part, i) =>
     URL_REGEX.test(part) ? (
-      <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="font-bold underline hover:opacity-80 transition-opacity">{part}</a>
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="font-bold underline hover:opacity-80 transition-opacity break-all">{truncateUrl(part)}</a>
     ) : (
       <span key={i}>{part}</span>
     )
@@ -29,14 +35,12 @@ interface MessageBubbleProps {
   onDelete?: (id: string) => void;
   onImageClick?: (url: string) => void;
   onReply?: (message: Message) => void;
+  onReport?: (message: Message) => void;
 }
 
-export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick, onReply }: MessageBubbleProps) {
+export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick, onReply, onReport }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
-  const time = message.timestamp.toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const time = formatMessageTimestamp(message.timestamp);
 
   const canDelete = isOwn || isAdmin;
 
@@ -45,6 +49,11 @@ export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick,
     navigator.clipboard.writeText(message.text);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  };
+
+  const truncateReplyText = (text: string, max = 60) => {
+    if (text.length <= max) return text;
+    return text.slice(0, max) + "...";
   };
 
   return (
@@ -64,14 +73,14 @@ export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick,
         </div>
       )}
 
-      <div className={`max-w-[75%] md:max-w-[60%] ${isOwn ? "items-end" : "items-start"} flex flex-col`}>
+      <div className={`max-w-[75%] md:max-w-[60%] ${isOwn ? "items-end" : "items-start"} flex flex-col min-w-0`}>
         {!isOwn && (
           <span className="text-xs font-medium text-primary ml-1 mb-0.5">{message.sender}</span>
         )}
         <div className="relative">
           <div
             className={`
-              px-4 py-2.5 rounded-2xl text-sm leading-relaxed
+              px-4 py-2.5 rounded-2xl text-sm leading-relaxed overflow-hidden
               ${isOwn ? "chat-bubble-own rounded-br-md" : "chat-bubble-other rounded-bl-md"}
             `}
           >
@@ -79,9 +88,9 @@ export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick,
             {message.replyTo && (
               <div className="flex items-stretch gap-0 mb-2 rounded-lg overflow-hidden bg-black/10">
                 <div className="w-1 bg-primary flex-shrink-0" />
-                <div className="px-2.5 py-1.5 min-w-0">
+                <div className="px-2.5 py-1.5 min-w-0 overflow-hidden">
                   <p className="text-xs font-semibold text-primary truncate">{message.replyTo.sender}</p>
-                  <p className="text-xs opacity-70 truncate">{message.replyTo.text || "📎 Anexo"}</p>
+                  <p className="text-xs opacity-70 truncate">{truncateReplyText(message.replyTo.text || "📎 Anexo")}</p>
                 </div>
               </div>
             )}
@@ -134,15 +143,15 @@ export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick,
                 loading="lazy"
               />
             ) : message.text ? (
-              <p>{linkifyText(message.text)}</p>
+              <p className="break-words whitespace-pre-wrap overflow-wrap-anywhere" style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}>{linkifyText(message.text)}</p>
             ) : null}
-            <p className={`text-[10px] mt-1 ${isOwn ? "text-chat-own-foreground/60" : "text-muted-foreground"} text-right`}>
+            <p className={`text-[10px] mt-1 ${isOwn ? "text-chat-own-foreground/60" : "text-muted-foreground"} text-right whitespace-nowrap`}>
               {time}
             </p>
           </div>
 
           {/* Action buttons */}
-          <div className={`absolute ${isOwn ? "-left-20" : "-right-20"} top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all`}>
+          <div className={`absolute ${isOwn ? "-left-24" : "-right-24"} top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all`}>
             {message.text && !isGiphyUrl(message.text) && (
               <button
                 onClick={handleCopy}
@@ -159,6 +168,15 @@ export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick,
                 title="Responder"
               >
                 <Reply className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {!isOwn && onReport && (
+              <button
+                onClick={() => onReport(message)}
+                className="p-1 rounded text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10 transition-all"
+                title="Denunciar"
+              >
+                <Flag className="w-3.5 h-3.5" />
               </button>
             )}
             {canDelete && onDelete && (
