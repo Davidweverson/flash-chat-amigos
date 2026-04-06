@@ -9,6 +9,7 @@ export interface Profile {
   friend_code: string | null;
   role: string;
   banned: boolean;
+  muted_until: string | null;
 }
 
 export function useAuth() {
