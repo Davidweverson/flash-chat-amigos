@@ -31,6 +31,7 @@ export function useAuth() {
         friend_code: data.friend_code,
         role: (data as any).role ?? "user",
         banned: (data as any).banned ?? false,
+        muted_until: (data as any).muted_until ?? null,
       });
     }
     return !!data;
