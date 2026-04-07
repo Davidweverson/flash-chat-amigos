@@ -5,7 +5,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @layer base {
-  :root {
+  /* ===== DARK MODE (default) ===== */
+  :root,
+  .dark {
     --background: 220 20% 7%;
     --foreground: 210 20% 92%;
 
@@ -54,16 +56,98 @@
     --sidebar-border: 220 14% 15%;
     --sidebar-ring: 190 80% 50%;
   }
+
+  /* ===== LIGHT MODE ===== */
+  .light {
+    --background: 0 0% 98%;
+    --foreground: 220 20% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 12%;
+
+    --primary: 190 80% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 92%;
+    --secondary-foreground: 220 16% 30%;
+
+    --muted: 220 14% 93%;
+    --muted-foreground: 215 12% 45%;
+
+    --accent: 260 60% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 14% 86%;
+    --input: 220 14% 86%;
+    --ring: 190 80% 40%;
+
+    --chat-own: 190 60% 88%;
+    --chat-other: 220 14% 94%;
+    --chat-own-foreground: 190 40% 15%;
+    --chat-other-foreground: 220 16% 20%;
+    --glass: 0 0% 100%;
+    --glass-border: 220 14% 88%;
+    --glow-primary: 190 80% 40%;
+    --online: 145 70% 40%;
+
+    --sidebar-background: 0 0% 97%;
+    --sidebar-foreground: 220 16% 25%;
+    --sidebar-primary: 190 80% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 92%;
+    --sidebar-accent-foreground: 220 16% 12%;
+    --sidebar-border: 220 14% 88%;
+    --sidebar-ring: 190 80% 40%;
+  }
 }
 
 @layer base {
   * {
     @apply border-border;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
   }
 
   body {
     @apply bg-background text-foreground;
     font-family: 'Space Grotesk', system-ui, sans-serif;
+    cursor: url('/cursors/pointer.cur'), auto;
+  }
+
+  /* Custom cursors */
+  a, button, [role="button"], label[for], select, summary,
+  input[type="submit"], input[type="button"], input[type="reset"],
+  input[type="checkbox"], input[type="radio"] {
+    cursor: url('/cursors/link.cur'), pointer;
+  }
+
+  input[type="text"], input[type="email"], input[type="password"],
+  input[type="search"], input[type="tel"], input[type="url"],
+  input[type="number"], textarea, [contenteditable="true"] {
+    cursor: url('/cursors/text.cur'), text;
+  }
+
+  button:disabled, [disabled] {
+    cursor: url('/cursors/unavailable.cur'), not-allowed;
+  }
+
+  /* Reduced motion override */
+  .reduce-motion *,
+  .reduce-motion *::before,
+  .reduce-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* Chat font size variable */
+  :root {
+    --chat-font-size: 14px;
   }
 
   ::-webkit-scrollbar {
