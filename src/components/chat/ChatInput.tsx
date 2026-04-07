@@ -13,11 +13,12 @@ interface ChatInputProps {
   uploadProgress?: number | null;
   replyingTo?: ReplyInfo | null;
   onCancelReply?: () => void;
+  sendWithEnter?: boolean;
 }
 
 const QUICK_EMOJIS = ["😂", "🔥", "❤️", "👍", "😎", "🎉", "💯", "😭", "🤔", "👀", "✨", "🙌"];
 
-export function ChatInput({ onSend, onTyping, uploading, uploadProgress, replyingTo, onCancelReply }: ChatInputProps) {
+export function ChatInput({ onSend, onTyping, uploading, uploadProgress, replyingTo, onCancelReply, sendWithEnter = true }: ChatInputProps) {
   const [text, setText] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
   const [showGifs, setShowGifs] = useState(false);
@@ -218,6 +219,11 @@ export function ChatInput({ onSend, onTyping, uploading, uploadProgress, replyin
             value={text}
             onChange={handleChange}
             onPaste={handlePaste}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !sendWithEnter) {
+                e.preventDefault();
+              }
+            }}
             placeholder="Digite sua mensagem..."
             className="flex-1 px-4 py-2.5 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm transition-all"
           />

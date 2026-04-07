@@ -35,14 +35,16 @@ export interface Room {
   id: string;
   name: string;
   emoji: string;
+  is_readonly: boolean;
 }
 
+// Fallback rooms used before DB loads
 export const ROOMS: Room[] = [
-  { id: "geral", name: "​Bate-Papo", emoji: "💬" },
-  { id: "jogos", name: "​Métodos/Sites", emoji: "​📁" },
-  { id: "musica", name: "​Sobre escola", emoji: "​🏫" },
-  { id: "random", name: "​Caos/Zoeira", emoji: "​🔥" },
-  { id: "tecnologia", name: "​Atualizações", emoji: "​📢" },
+  { id: "geral", name: "​Bate-Papo", emoji: "💬", is_readonly: false },
+  { id: "jogos", name: "​Métodos/Sites", emoji: "​📁", is_readonly: true },
+  { id: "musica", name: "​Sobre escola", emoji: "​🏫", is_readonly: false },
+  { id: "random", name: "​Caos/Zoeira", emoji: "​🔥", is_readonly: false },
+  { id: "tecnologia", name: "​Atualizações", emoji: "​📢", is_readonly: true },
 ];
 
 const profileCache = new Map<string, { username: string; avatar_url: string | null }>();
@@ -97,13 +99,32 @@ export function useChatStore(userId: string, username: string) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [rooms, setRooms] = useState<Room[]>(ROOMS);
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const currentRoomRef = useRef(currentRoom);
 
+  // Load rooms from DB
+  useEffect(() => {
+    supabase
+      .from("rooms")
+      .select("*")
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setRooms(
+            data.map((r: any) => ({
+              id: r.id,
+              name: r.name,
+              emoji: r.emoji,
+              is_readonly: r.is_readonly,
+            }))
+          );
+        }
+      });
+  }, []);
+
   useEffect(() => {
     currentRoomRef.current = currentRoom;
-    // Reset unread count when entering a room
     setUnreadCounts((prev) => {
       if (prev[currentRoom]) {
         const next = { ...prev };
@@ -205,7 +226,6 @@ export function useChatStore(userId: string, username: string) {
           const m = payload.new as any;
           const isOwnMessage = m.user_id === userId;
           if (isOwnMessage) return;
-          // Only count if it's not the current room
           if (m.room_id !== currentRoomRef.current) {
             setUnreadCounts((prev) => ({
               ...prev,
@@ -261,8 +281,6 @@ export function useChatStore(userId: string, username: string) {
 
   const sendMessage = useCallback(
     async (text: string, pendingAttachments?: PendingAttachment[], replyToId?: string) => {
-      console.log("[ChatStore] Sending message:", { text, userId, username, currentRoom, attachments: pendingAttachments?.length });
-
       let attachmentData: AttachmentData[] = [];
 
       if (pendingAttachments && pendingAttachments.length > 0) {
@@ -280,7 +298,6 @@ export function useChatStore(userId: string, username: string) {
             );
             attachmentData.push(att);
           }
-          console.log("[ChatStore] Attachments uploaded:", attachmentData.length);
         } catch (err) {
           console.error("[ChatStore] Upload failed:", err);
           setUploading(false);
@@ -289,8 +306,6 @@ export function useChatStore(userId: string, username: string) {
         }
       }
 
-      // Insert the message
-      console.log("[ChatStore] Inserting message into DB...");
       const { data: msgData, error: msgError } = await supabase
         .from("chat_messages")
         .insert({
@@ -305,17 +320,13 @@ export function useChatStore(userId: string, username: string) {
 
       if (msgError) {
         console.error("[ChatStore] Failed to insert message:", msgError);
-        console.error("[ChatStore] Error details:", JSON.stringify(msgError));
         setUploading(false);
         setUploadProgress(null);
         return;
       }
 
-      console.log("[ChatStore] Message inserted successfully:", msgData.id);
-
-      // Insert attachments
       if (msgData && attachmentData.length > 0) {
-        const { error: attError } = await supabase.from("message_attachments").insert(
+        await supabase.from("message_attachments").insert(
           attachmentData.map((a) => ({
             message_id: msgData.id,
             message_type: "chat",
@@ -327,11 +338,6 @@ export function useChatStore(userId: string, username: string) {
             size: a.size,
           }))
         );
-        if (attError) {
-          console.error("[ChatStore] Failed to insert attachments:", attError);
-        } else {
-          console.log("[ChatStore] Attachments inserted successfully");
-        }
       }
 
       setUploading(false);
@@ -355,6 +361,7 @@ export function useChatStore(userId: string, username: string) {
   }, [username]);
 
   const roomMessages = messages.filter((m) => m.roomId === currentRoom);
+  const currentRoomData = rooms.find((r) => r.id === currentRoom);
 
   return {
     currentRoom,
@@ -368,5 +375,7 @@ export function useChatStore(userId: string, username: string) {
     uploading,
     uploadProgress,
     unreadCounts,
+    rooms,
+    currentRoomData,
   };
 }

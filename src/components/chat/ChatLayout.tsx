@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Menu } from "lucide-react";
+import { Menu, Lock, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { ChatSidebar } from "./ChatSidebar";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
@@ -8,11 +9,14 @@ import { AddFriendModal } from "./AddFriendModal";
 import { DMView } from "./DMView";
 import { ImageLightbox } from "./ImageLightbox";
 import { ReportModal } from "./ReportModal";
-import { ROOMS } from "@/lib/chat-store";
-import type { Message, ReplyInfo } from "@/lib/chat-store";
+import { ThemeToggle } from "./ThemeToggle";
+import { ChangelogModal, LATEST_VERSION } from "./ChangelogModal";
+import { Megaphone } from "lucide-react";
+import type { Room, Message, ReplyInfo } from "@/lib/chat-store";
 import type { Profile } from "@/hooks/useAuth";
 import type { Friend, FriendRequest } from "@/hooks/useFriends";
 import type { PendingAttachment } from "@/lib/image-utils";
+import { useSettings } from "@/lib/settings-context";
 
 interface ChatLayoutProps {
   username: string;
@@ -40,6 +44,8 @@ interface ChatLayoutProps {
   unreadCounts: Record<string, number>;
   onProfileUpdated?: () => void;
   isMuted?: boolean;
+  rooms: Room[];
+  currentRoomData?: Room;
 }
 
 export function ChatLayout({
@@ -68,15 +74,31 @@ export function ChatLayout({
   unreadCounts,
   onProfileUpdated,
   isMuted,
+  rooms,
+  currentRoomData,
 }: ChatLayoutProps) {
+  const navigate = useNavigate();
+  const { settings } = useSettings();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [addFriendOpen, setAddFriendOpen] = useState(false);
   const [activeDMFriend, setActiveDMFriend] = useState<Friend | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<ReplyInfo | null>(null);
   const [reportMessage, setReportMessage] = useState<Message | null>(null);
+  const [changelogOpen, setChangelogOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const room = ROOMS.find((r) => r.id === currentRoom);
+  const room = currentRoomData || rooms.find((r) => r.id === currentRoom);
+
+  const isReadonly = room?.is_readonly && !isAdmin;
+
+  // Check for unread changelog
+  const lastReadVersion = typeof window !== "undefined" ? localStorage.getItem("flashchat_changelog_read") : null;
+  const hasUnreadChangelog = lastReadVersion !== LATEST_VERSION;
+
+  const handleOpenChangelog = () => {
+    setChangelogOpen(true);
+    localStorage.setItem("flashchat_changelog_read", LATEST_VERSION);
+  };
 
   const prevMessagesLenRef = useRef(messages.length);
 
@@ -125,6 +147,10 @@ export function ChatLayout({
         activeDMFriendId={activeDMFriend?.id || null}
         unreadCounts={unreadCounts}
         onProfileUpdated={onProfileUpdated}
+        rooms={rooms}
+        onOpenChangelog={handleOpenChangelog}
+        hasUnreadChangelog={hasUnreadChangelog}
+        onOpenSettings={() => navigate("/settings")}
       />
 
       {activeDMFriend ? (
@@ -140,14 +166,22 @@ export function ChatLayout({
             </button>
             <span className="text-lg">{room?.emoji}</span>
             <div className="flex-1">
-              <h2 className="font-semibold text-foreground text-sm">{room?.name}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold text-foreground text-sm">{room?.name}</h2>
+                {room?.is_readonly && (
+                  <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">{onlineUsers.length} online</p>
             </div>
-            {isAdmin && (
-              <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full font-medium">
-                Admin
-              </span>
-            )}
+            <div className="flex items-center gap-1">
+              <ThemeToggle />
+              {isAdmin && (
+                <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full font-medium">
+                  Admin
+                </span>
+              )}
+            </div>
           </header>
 
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
@@ -164,18 +198,25 @@ export function ChatLayout({
                 isAdmin={isAdmin}
                 onDelete={onDeleteMessage}
                 onImageClick={setLightboxSrc}
-                onReply={handleReply}
+                onReply={isReadonly ? undefined : handleReply}
                 onReport={(m) => setReportMessage(m)}
+                showAvatar={settings.showAvatars}
+                showTimestamp={settings.showTimestamp}
               />
             ))}
             <div ref={messagesEndRef} />
           </div>
 
-          <TypingIndicator users={typingUsers} />
+          {settings.showTypingIndicator && <TypingIndicator users={typingUsers} />}
 
           {isMuted ? (
             <div className="px-4 py-3 text-center text-sm text-muted-foreground bg-destructive/10 border-t border-border">
               🔇 Você está mutado e não pode enviar mensagens no momento.
+            </div>
+          ) : isReadonly ? (
+            <div className="px-4 py-3 text-center text-sm text-muted-foreground bg-muted/50 border-t border-border flex items-center justify-center gap-2">
+              <Lock className="w-4 h-4" />
+              Este canal é somente leitura. Apenas administradores podem enviar mensagens.
             </div>
           ) : (
             <ChatInput
@@ -185,6 +226,7 @@ export function ChatLayout({
               uploadProgress={uploadProgress}
               replyingTo={replyingTo}
               onCancelReply={() => setReplyingTo(null)}
+              sendWithEnter={settings.sendWithEnter}
             />
           )}
         </div>
@@ -206,6 +248,8 @@ export function ChatLayout({
         message={reportMessage}
         reporterId={userId}
       />
+
+      <ChangelogModal open={changelogOpen} onClose={() => setChangelogOpen(false)} />
     </div>
   );
 }
