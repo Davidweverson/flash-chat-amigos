@@ -65,10 +65,10 @@ export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick,
       transition={{ duration: 0.2 }}
       className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-1 group`}
     >
-      {!isOwn && (
+      {!isOwn && showAvatar && (
         <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0 mr-2 mt-5">
           {message.senderAvatar ? (
-            <img src={message.senderAvatar} alt="" className="w-full h-full object-cover" />
+            <img src={message.senderAvatar} alt="" className="w-full h-full object-cover" loading="lazy" />
           ) : (
             <span className="text-xs font-bold text-muted-foreground">{message.sender[0]?.toUpperCase()}</span>
           )}
