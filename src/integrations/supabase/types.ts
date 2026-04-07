@@ -247,6 +247,33 @@ export type Database = {
         }
         Relationships: []
       }
+      rooms: {
+        Row: {
+          allowed_roles: string[]
+          created_at: string
+          emoji: string
+          id: string
+          is_readonly: boolean
+          name: string
+        }
+        Insert: {
+          allowed_roles?: string[]
+          created_at?: string
+          emoji?: string
+          id: string
+          is_readonly?: boolean
+          name: string
+        }
+        Update: {
+          allowed_roles?: string[]
+          created_at?: string
+          emoji?: string
+          id?: string
+          is_readonly?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
