@@ -18,7 +18,7 @@ interface ChatInputProps {
 
 const QUICK_EMOJIS = ["😂", "🔥", "❤️", "👍", "😎", "🎉", "💯", "😭", "🤔", "👀", "✨", "🙌"];
 
-export function ChatInput({ onSend, onTyping, uploading, uploadProgress, replyingTo, onCancelReply }: ChatInputProps) {
+export function ChatInput({ onSend, onTyping, uploading, uploadProgress, replyingTo, onCancelReply, sendWithEnter = true }: ChatInputProps) {
   const [text, setText] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
   const [showGifs, setShowGifs] = useState(false);
