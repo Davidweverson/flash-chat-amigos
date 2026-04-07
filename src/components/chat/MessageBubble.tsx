@@ -145,11 +145,13 @@ export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick,
                 loading="lazy"
               />
             ) : message.text ? (
-              <p className="break-words whitespace-pre-wrap overflow-wrap-anywhere" style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}>{linkifyText(message.text)}</p>
+              <p className="break-words whitespace-pre-wrap overflow-wrap-anywhere" style={{ overflowWrap: "anywhere", wordBreak: "break-word", fontSize: "var(--chat-font-size)" }}>{linkifyText(message.text)}</p>
             ) : null}
-            <p className={`text-[10px] mt-1 ${isOwn ? "text-chat-own-foreground/60" : "text-muted-foreground"} text-right whitespace-nowrap`}>
-              {time}
-            </p>
+            {showTimestamp && (
+              <p className={`text-[10px] mt-1 ${isOwn ? "text-chat-own-foreground/60" : "text-muted-foreground"} text-right whitespace-nowrap`}>
+                {time}
+              </p>
+            )}
           </div>
 
           {/* Action buttons */}
