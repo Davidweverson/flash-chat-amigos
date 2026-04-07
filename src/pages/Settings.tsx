@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Palette, Bell, MessageSquare, Shield, Info } from "lucide-react";
 import { useSettings } from "@/lib/settings-context";
-import { COLOR_PRESETS, LATEST_VERSION } from "@/components/chat/ChangelogModal";
+import { COLOR_PRESETS } from "@/lib/settings-store";
+import { LATEST_VERSION } from "@/components/chat/ChangelogModal";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import {
