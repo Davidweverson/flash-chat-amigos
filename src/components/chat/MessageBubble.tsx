@@ -40,7 +40,7 @@ interface MessageBubbleProps {
   showTimestamp?: boolean;
 }
 
-export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick, onReply, onReport }: MessageBubbleProps) {
+export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick, onReply, onReport, showAvatar = true, showTimestamp = true }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
   const time = formatMessageTimestamp(message.timestamp);
 
