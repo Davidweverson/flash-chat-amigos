@@ -29,7 +29,6 @@ const Index = () => {
     );
   }
 
-  // Check if user is currently muted
   const isMuted = profile.muted_until ? new Date(profile.muted_until) > new Date() : false;
 
   return (
@@ -59,6 +58,8 @@ const Index = () => {
       unreadCounts={chat.unreadCounts}
       onProfileUpdated={refetchProfile}
       isMuted={isMuted}
+      rooms={chat.rooms}
+      currentRoomData={chat.currentRoomData}
     />
   );
 };
