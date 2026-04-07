@@ -13,6 +13,7 @@ interface ChatInputProps {
   uploadProgress?: number | null;
   replyingTo?: ReplyInfo | null;
   onCancelReply?: () => void;
+  sendWithEnter?: boolean;
 }
 
 const QUICK_EMOJIS = ["😂", "🔥", "❤️", "👍", "😎", "🎉", "💯", "😭", "🤔", "👀", "✨", "🙌"];
