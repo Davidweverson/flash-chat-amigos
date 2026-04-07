@@ -36,6 +36,8 @@ interface MessageBubbleProps {
   onImageClick?: (url: string) => void;
   onReply?: (message: Message) => void;
   onReport?: (message: Message) => void;
+  showAvatar?: boolean;
+  showTimestamp?: boolean;
 }
 
 export function MessageBubble({ message, isOwn, isAdmin, onDelete, onImageClick, onReply, onReport }: MessageBubbleProps) {
